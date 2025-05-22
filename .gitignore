@@ -1,0 +1,6 @@
+# PDFs and text files
+*.pdf
+*.txt
+
+# old directories
+*stuff/
