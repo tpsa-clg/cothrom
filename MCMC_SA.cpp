@@ -74,10 +74,10 @@ class Map
       }
       cngs = connect_(cxg);
 
-      int ΔHD_curr = 0;
-      for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == curr) ΔHD_curr ++;
+      int deltaHD_curr = 0;
+      for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == curr) deltaHD_curr ++;
 
-      return valarray<double>{ (abs(q_pop_[curr] - ED_pop_[x]) - abs(q_pop_[curr]))/av_pop_, abs(q_group_[curr].size() + cngs.size() - 2.) - q_group_[curr].size() + 1, double(ΔHD_curr) };
+      return valarray<double>{ (abs(q_pop_[curr] - ED_pop_[x]) - abs(q_pop_[curr]))/av_pop_, abs(q_group_[curr].size() + cngs.size() - 2.) - q_group_[curr].size() + 1, double(deltaHD_curr) };
     }
     valarray<double> deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const
     {
@@ -95,10 +95,10 @@ class Map
         }
       }
 
-      int ΔHD_prop = 0;
-      for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == prop) ΔHD_prop --;
+      int deltaHD_prop = 0;
+      for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == prop) deltaHD_prop --;
 
-      return valarray<double>{ (abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/av_pop_, q_group_[prop].size() - pngs.size() - abs(q_group_[prop].size() - 1.), double(ΔHD_prop) };
+      return valarray<double>{ (abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/av_pop_, q_group_[prop].size() - pngs.size() - abs(q_group_[prop].size() - 1.), double(deltaHD_prop) };
     }
 
     void config_update_()
@@ -181,7 +181,7 @@ class Map
 
     int MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
     {
-      int α = 0;
+      int alpha = 0;
       for (int x = 0; x < EDs_; x ++)
       {
         int prop;
@@ -190,61 +190,55 @@ class Map
         int cqg_idx;
         vector<vector<int>> cngs, pngs(0);
         vector<int> pqg_idxs(0);
-        valarray<double> ΔH = deltaH_curr_(x, cqg_idx, cngs) + deltaH_prop_(x, prop, pqg_idxs, pngs);
+        valarray<double> deltaH = deltaH_curr_(x, cqg_idx, cngs) + deltaH_prop_(x, prop, pqg_idxs, pngs);
 
-        double ΔH_sum = (J_ZT*ΔH).sum();
-        if (ΔH_sum <= 0 || standard_uniform(r) < exp(-ΔH_sum))
+        double deltaH_sum = (J_ZT*deltaH).sum();
+        if (deltaH_sum <= 0 || standard_uniform(r) < exp(-deltaH_sum))
         {
           site_update_(x, prop, cqg_idx, cngs, pqg_idxs, pngs);
-          H += ΔH;
-          α ++;
+          H += deltaH;
+          alpha ++;
         }
       }
-      return α;
+      return alpha;
     }
 
     int GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
     {
-      int α = 0;
+      int alpha = 0;
       for (int x = 0; x < EDs_; x ++)
       {
         int curr = ED_q_[x];
         int cqg_idx;
         vector<vector<int>> cngs, pqg_idxs(Q_, vector<int>(0));
         vector<vector<vector<int>>> pngs(Q_, vector<vector<int>>(0));
-        vector<valarray<double>> ΔH(Q_, deltaH_curr_(x, cqg_idx, cngs));
-        valarray<double> prop_dist(Q_);
+        vector<valarray<double>> deltaH(Q_, deltaH_curr_(x, cqg_idx, cngs));
+        vector<double> prop_dist(Q_);
         #pragma omp parallel for
         for (int q = 0; q < Q_; q ++)
         {
           if (q != curr)
           {
-            ΔH[q] += deltaH_prop_(x, q, pqg_idxs[q], pngs[q]);
-            prop_dist[q] = exp(-(J_ZT*ΔH[q]).sum());
+            deltaH[q] += deltaH_prop_(x, q, pqg_idxs[q], pngs[q]);
+            prop_dist[q] = exp(-(J_ZT*deltaH[q]).sum());
           }
           else
           {
-            ΔH[q] = valarray<double>{ 0., 0., 0. };
+            deltaH[q] = valarray<double>{ 0., 0., 0. };
             prop_dist[q] = 1.;
           }
         }
-        prop_dist /= prop_dist.sum();
-        int prop = 0;
-        double u = standard_uniform(r), sum = prop_dist[prop];
-        while (u > sum)
-        {
-          prop ++;
-          sum += prop_dist[prop];
-        }
+        discrete_distribution<int> Gibbs_dist(prop_dist.begin(), prop_dist.end());
+        int prop = Gibbs_dist(r);
         
         if (prop != curr)
         {
           site_update_(x, prop, cqg_idx, cngs, pqg_idxs[prop], pngs[prop]);
-          H += ΔH[prop];
-          α ++;
+          H += deltaH[prop];
+          alpha ++;
         }
       }
-      return α;
+      return alpha;
     }
 };
 
@@ -256,38 +250,38 @@ double mean(const vector<double>& chain)
   for (int n = 0; n < chain.size(); n ++) sum += chain[n];
   return sum/chain.size();
 }
-double quad_sum(const vector<double>& chain, const double& μ)
+double quad_sum(const vector<double>& chain, const double& mu)
 {
   double sum = 0.;
   #pragma omp parallel for reduction(+:sum)
-  for (int n = 0; n < chain.size(); n ++) sum += pow(chain[n] - μ, 2.);
+  for (int n = 0; n < chain.size(); n ++) sum += pow(chain[n] - mu, 2.);
   return sum;
 }
-double mean_error(const vector<double>& chain, const double& μ)
+double mean_error(const vector<double>& chain, const double& mu)
 {
-  return sqrt(quad_sum(chain, μ) / (chain.size()*(chain.size()-1.)));
+  return sqrt(quad_sum(chain, mu) / (chain.size()*(chain.size()-1.)));
 }
 
-void autocorr(const vector<double>& chain, const double& μ, double& τ, double& Δτ)
+void autocorr(const vector<double>& chain, const double& mu, double& tau, double& deltatau)
 {
   int N = chain.size(), M = 0;
-  double fac = 2.*N/quad_sum(chain, μ);
-  τ = 1.;
+  double fac = 2.*N/quad_sum(chain, mu);
+  tau = 1.;
   do
   {
     M++;
     double sum = 0.;
     #pragma omp parallel for reduction(+:sum)
-    for (int n = 0; n < N-M; n ++) sum += (chain[n]-μ)*(chain[n+M]-μ);
-    τ += sum/(N-M)*fac;
-  } while (M < 5*τ);
-  Δτ = τ*sqrt((4.*M+2.)/N);
+    for (int n = 0; n < N-M; n ++) sum += (chain[n]-mu)*(chain[n+M]-mu);
+    tau += sum/(N-M)*fac;
+  } while (M < 5*tau);
+  deltatau = tau*sqrt((4.*M+2.)/N);
 }
-vector<double> thin(const vector<double>& chain, const int& τ)
+vector<double> thin(const vector<double>& chain, const int& tau)
 {
-  vector<double> thinned(chain.size()/τ);
+  vector<double> thinned(chain.size()/tau);
   #pragma omp parallel for
-  for (int n = 0; n < thinned.size(); n ++) thinned[n] = chain[n*τ];
+  for (int n = 0; n < thinned.size(); n ++) thinned[n] = chain[n*tau];
   return thinned;
 }
 
