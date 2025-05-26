@@ -7,10 +7,12 @@ Current state of affairs
 - nothing for Pareto front
 - test alternative parallelisation e.g. keep threads open and use single/master thread when desired rather than closing and re-launching threads
 - need to change `readfile_findneighbours.py` so that it takes desired area(s) (constituency, county, province, list of EDs) as input and outputs necessary files
+- consider stopping annealing when new states stop being accepted, instead of continuing for entire temperature range
 - potentially update `.geojson` and `.csv` files with newer data? still using same files from 2023 hackathon
-- split `MCMC_SA.cpp` into multiple files e.g. `.h` for `Map` class and statistical functions
-- set up a Makefile
-- try useful small redistricting instead of proofs-of-concept e.g. Dublin constituency, Cork constituency, European MP map, some local election maps
+- try useful small redistricting instead of proofs-of-concept e.g. Dublin constituency, Cork constituency, European MP map, some local election maps (note that these all conveniently have no county borders involved so can work on this without extra Hamiltonian terms. EU MP constituencies can theoretically have border violations but have always comprised whole counties)
+- split `MCMC_SA.cpp` into multiple files e.g. `.h` for classes and functions, class inheritance for different map types e.g. single-seat ED groupings (original proof-of-concept), multiple-seat ED groupings (Dublin/Cork, full-scale Ireland, LEAs), single-seat county groupings (EU Parliament constituencies)
+- consider something like `pyerrors` for observable and error tracking - would need to store measurements for each config (approx. 30MB for each Hamiltonian + acceptance rate at 10,000 iterations and 151 temperatures) but can do all stats in Python instead of C++
+- set up a Makefile to track C++ executables (after above step)
 
 `readfile_findneighbours.py` - reads .csv and .geojson files and saves population, geography, and ED ID to text files
 
