@@ -1,6 +1,8 @@
-# PDFs and text files
+# data files
 *.pdf
 *.txt
+*.geojson
+*.csv
 
 # old directories
 *stuff/
