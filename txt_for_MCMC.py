@@ -1,30 +1,34 @@
 import numpy as np
 import pandas as pd
-import geopandas as geop
+import geopandas as gpd
 import matplotlib.pyplot as plt
+import sys
 
-# constituency_str = "Carlow-Kilkenny"
-# constituency_df = constituency_df.merge(district_data, on="ED_ID")
-# population = constituency_df.population.values
-# neighbours = np.array([
-#     [j for j, touch in enumerate(constituency_df.geometry.touches(
-#         constituency_df.geometry[i])) if touch] for i in
-#     range(len(constituency_df))], dtype=object)
-# ED = constituency_df.ED_ID.values
-# pop_file = open("%s populations.txt" % constituency_str, "w")
-# nei_file = open("%s neighbours.txt" % constituency_str, "w")
-# ED_file = open("%s EDs.txt" % constituency_str, "w")
-# for pop, nei, ed in zip(population, neighbours, ED):
-#     pop_file.write("%s\n" % pop)
-#     for x in nei:
-#         nei_file.write("%s " % x)
-#     nei_file.write("\n")
-#     ED_file.write("%s\n" % ed)
-# pop_file.close()
-# nei_file.close()
-# ED_file.close()
-# constituency_df.plot()
-# plt.title(constituency_str)
-# plt.show()
 
-# important_data["Neighbours"] = np.array([[important_data.GUID[j] for j, touch in enumerate(important_data.geometry.touches(important_data.geometry[i])) if touch] for i in range(len(important_data))], dtype=object)
+# Area from command line
+area_type = sys.argv[1]
+area_list = sys.argv[2].split(",")
+area_name = sys.argv[3]
+
+
+# Reading required data
+area_df = gpd.read_file("ED_data.geojson")
+area_df = area_df[area_df[area_type].isin(area_list)].reset_index(drop=True)
+
+
+# Saving .txt files
+GUID = area_df.GUID.values
+population = area_df.Population.values
+neighbours = [[j for j, touch in enumerate(area_df.geometry.touches(area_df.geometry[i])) if touch] for i in range(len(area_df))]
+GUID_file = open("%s GUIDs.txt" % area_name, "w")
+population_file = open("%s populations.txt" % area_name, "w")
+neighbours_file = open("%s neighbours.txt" % area_name, "w")
+for pop, nei, guid in zip(population, neighbours, GUID):
+  GUID_file.write("%s\n" % guid)
+  population_file.write("%s\n" % pop)
+  for x in nei:
+    neighbours_file.write("%s " % x)
+  neighbours_file.write("\n")
+GUID_file.close()
+population_file.close()
+neighbours_file.close()

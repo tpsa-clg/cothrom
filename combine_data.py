@@ -5,9 +5,7 @@ import glob
 
 
 # Merging ED datasets from CSO (population) & Tailte Éireann (name, county, LEA, geography)
-population_data = pd.read_csv(glob.glob("F1060*.csv")[0], usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"})
-important_data = gpd.read_file("CSO_ELECTORAL_DIVISIONS_2022_Genralised_100m_view_726581695825557405.geojson", columns=["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]).rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(population_data, on="GUID")
-del population_data
+important_data = gpd.read_file("CSO_ELECTORAL_DIVISIONS_2022_Genralised_100m_view_726581695825557405.geojson", columns=["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]).rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(glob.glob("F1060*.csv")[0], usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID")
 
 
 # Obtaining extra geographical data (area, perimeter, neighbouring EDs)
@@ -1183,3 +1181,7 @@ important_data.loc[(important_data.County=="ROSCOMMON") | ((important_data.Count
 important_data.loc[(important_data.County.isin(["NORTH TIPPERARY", "SOUTH TIPPERARY"])) & (important_data.Constituency!="TIPPERARY NORTH"), "Constituency"] = "TIPPERARY SOUTH"
 important_data.loc[(important_data.County=="WEXFORD") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WEXFORD"
 important_data.loc[(important_data.County=="WICKLOW") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WICKLOW"
+
+
+# Saving to .geojson
+important_data[["GUID", "Name", "County", "Constituency", "LEA", "Population", "Area", "Perimeter", "geometry"]].to_file("ED_data.geojson", driver="GeoJSON", index=False)
