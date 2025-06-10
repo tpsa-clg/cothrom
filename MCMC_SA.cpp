@@ -294,11 +294,11 @@ int main(int argc, char *argv[])
   string constituency_name = argv[1];
   string line;
   vector<int> populations(0);
-  ifstream pop_file(constituency_name + " populations.txt");
+  ifstream pop_file(constituency_name + " Population.txt");
   while (getline(pop_file, line)) populations.push_back(stoi(line));
   pop_file.close();
   vector<vector<int>> neighbours(0);
-  ifstream nei_file(constituency_name + " neighbours.txt");
+  ifstream nei_file(constituency_name + " Neighbours.txt");
   while (getline(nei_file, line))
   {
     stringstream ss(line);

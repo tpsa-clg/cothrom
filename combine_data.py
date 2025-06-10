@@ -5,12 +5,22 @@ import glob
 
 
 # Merging ED datasets from CSO (population) & Tailte Éireann (name, county, LEA, geography)
-important_data = gpd.read_file("CSO_ELECTORAL_DIVISIONS_2022_Genralised_100m_view_726581695825557405.geojson", columns=["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]).rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(glob.glob("F1060*.csv")[0], usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID")
+important_data = gpd.read_file(glob.glob("CSO*100m*.geojson")[0], columns=["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]).rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(glob.glob("F1060*.csv")[0], usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID")
+print("CSO & Tailte Éireann data merged.")
 
 
 # Obtaining extra geographical data (area, perimeter, neighbouring EDs)
-important_data["Area"], important_data["Perimeter"] = important_data.area, important_data.length
-# important_data = important_data.drop(columns="geometry")
+important_data["Area"], important_data["Perimeter"] = important_data.area/(1000.**2.), important_data.length/(1000.)
+print("Area and perimeter data added.")
+important_data["Neighbours"] = [{important_data.GUID[j] for j, touch in enumerate(important_data.geometry.touches(important_data.geometry[i])) if touch} for i in range(len(important_data))]
+important_data.drop(columns="geometry", inplace=True)
+print("100m neighbours data added.")
+other_maps = ["50m", "20m", "Ungeneralised"]
+for map in other_maps:
+  gdf = gpd.read_file(glob.glob("CSO*%s*.geojson" % map)[0], columns=["ED_GUID", "geometry"])
+  important_data.loc[:, "Neighbours"] = [important_data.Neighbours[i] | {gdf.ED_GUID[j] for j, touch in enumerate(gdf.geometry.touches(gdf.geometry[i])) if touch} for i in range(len(gdf))]
+  print("%s neighbours data merged." % map)
+del gdf
 
 
 # Obtaining 2023 constituency data
@@ -25,6 +35,7 @@ important_data.loc[important_data.County.isin(["LONGFORD", "WESTMEATH"]), "Const
 important_data.loc[important_data.County=="MAYO", "Constituency"] = "MAYO"
 important_data.loc[important_data.County=="OFFALY", "Constituency"] = "OFFALY"
 important_data.loc[important_data.County.isin(["WATERFORD", "WATERFORD CITY"]), "Constituency"] = "WATERFORD"
+print("Whole-county constituency data added.")
 
 # Manual entries
 important_data.loc[(important_data.County=="CORK") & ((important_data.Name.isin([
@@ -1169,6 +1180,7 @@ important_data.loc[((important_data.County=="WEXFORD") & (important_data.Name.is
   "ARKLOW No. 1 URBAN",
   "ARKLOW No. 2 URBAN"
   ])) | (important_data.GUID=="2ae19629-1e60-13a3-e055-000000000001"))), "Constituency"] = "WICKLOW-WEXFORD"
+print("Manual-entry constituency data added.")
 
 # Complements
 important_data.loc[(important_data.County=="CARLOW") | ((important_data.County=="KILKENNY") & (important_data.Constituency!="TIPPERARY NORTH")), "Constituency"] = "CARLOW-KILKENNY"
@@ -1181,7 +1193,9 @@ important_data.loc[(important_data.County=="ROSCOMMON") | ((important_data.Count
 important_data.loc[(important_data.County.isin(["NORTH TIPPERARY", "SOUTH TIPPERARY"])) & (important_data.Constituency!="TIPPERARY NORTH"), "Constituency"] = "TIPPERARY SOUTH"
 important_data.loc[(important_data.County=="WEXFORD") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WEXFORD"
 important_data.loc[(important_data.County=="WICKLOW") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WICKLOW"
+print("Complement constituency data added.")
 
 
-# Saving to .geojson
-important_data[["GUID", "Name", "County", "Constituency", "LEA", "Population", "Area", "Perimeter", "geometry"]].to_file("ED_data.geojson", driver="GeoJSON", index=False)
+# Saving to .csv
+important_data.to_csv("ED_data.csv", columns=["GUID", "Name", "County", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
+print("Data saved to ED_data.csv.")
