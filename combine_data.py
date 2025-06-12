@@ -2,10 +2,58 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import glob
+import requests
+import os
+
+# Downloading necessary files if not in current directory
+pop_file = glob.glob("F1060*.csv")
+if pop_file:
+  pop_file = pop_file[0]
+else:
+  print("CSO population data not in current directory. Downloading from https://data.cso.ie/table/F1060...")
+  r = requests.get(r"https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.PxAPIv1/en/76/C2022P1/F1060?query=%7B%22query%22:%5B%7B%22code%22:%22STATISTIC%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22F1060C01%22%5D%7D%7D,%7B%22code%22:%22C02199V02655%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22-%22%5D%7D%7D%5D,%22response%22:%7B%22format%22:%22csv%22,%22pivot%22:null,%22codes%22:true%7D%7D")
+  if r.status_code == 200:
+    pop_file = "F1060.csv"
+    f = open(pop_file, "wb")
+    f.write(r.content)
+    f.close()
+    print("CSO population data downloaded.")
+  else:
+    print("Unable to download. Terminating programme.")
+    quit()
+maps = ["100m", "50m", "20m", "Ungeneralised"]
+webpages = ["https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-" + map + "1" for map in [
+  "generalised-100m",
+  "generalised-50m",
+  "generalised-20m",
+  "ungeneralised"]]
+file_URLs = ["https://data-osi.opendata.arcgis.com/api/download/v1/items/" + suffix for suffix in [
+  "a55332e0d15148688e06893086cb023b/geojson?layers=1",
+  "5e0536e5c6804b0087b14a5d929c429a/geojson?layers=4",
+  "ed3d7b317e244a32b8eeba4d2bd9b9df/geojson?layers=5",
+  "deba50580cc24e4eb9cf50eb3cfebf69/geojson?layers=1"]]
+geo_files = []
+for m, map in enumerate(maps):
+  geo_file = glob.glob(f"*{map}*.geojson")
+  if geo_file:
+    geo_files.append(geo_file[0])
+  else:
+    print(f"Tailte Éireann {map} data not in current directory. Downloading from {file_URLs[m]}...")
+    r = requests.get(file_URLs[m])
+    if r.status_code == 200:
+      geo_files.append(f"{map}.geojson")
+      f = open(geo_files[-1], "wb")
+      f.write(r.content)
+      f.close()
+      print(f"Tailte Éireann {map} data downloaded.")
+    else:
+      print("Unable to download. Terminating programme.")
+      quit()
+del r
 
 
 # Merging ED datasets from CSO (population) & Tailte Éireann (name, county, LEA, geography)
-important_data = gpd.read_file(glob.glob("CSO*100m*.geojson")[0], columns=["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]).rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(glob.glob("F1060*.csv")[0], usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID")
+important_data = gpd.read_file(geo_files[0], columns=["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]).rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID")
 print("CSO & Tailte Éireann data merged.")
 
 
@@ -15,11 +63,10 @@ print("Area and perimeter data added.")
 important_data["Neighbours"] = [{important_data.GUID[j] for j, touch in enumerate(important_data.geometry.touches(important_data.geometry[i])) if touch} for i in range(len(important_data))]
 important_data.drop(columns="geometry", inplace=True)
 print("100m neighbours data added.")
-other_maps = ["50m", "20m", "Ungeneralised"]
-for map in other_maps:
-  gdf = gpd.read_file(glob.glob("CSO*%s*.geojson" % map)[0], columns=["ED_GUID", "geometry"])
+for map, geo_file in zip(maps[1:], geo_files[1:]):
+  gdf = gpd.read_file(geo_file, columns=["ED_GUID", "geometry"])
   important_data.loc[:, "Neighbours"] = [important_data.Neighbours[i] | {gdf.ED_GUID[j] for j, touch in enumerate(gdf.geometry.touches(gdf.geometry[i])) if touch} for i in range(len(gdf))]
-  print("%s neighbours data merged." % map)
+  print(f"{map} neighbours data merged.")
 del gdf
 
 

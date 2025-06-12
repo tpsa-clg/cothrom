@@ -6,3 +6,7 @@
 
 # old directories
 *stuff/
+
+# executables, object files
+MCMC_SA
+*.o

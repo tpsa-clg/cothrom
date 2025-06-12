@@ -18,12 +18,12 @@ area_df.loc[:, "Neighbours"] = np.array([area_df.index[area_df["GUID"].isin(i)].
 
 
 # Saving .txt files
-files = [open("%s %s.txt" % (area_name, column), "w") for column in ["GUID", "Population", "Neighbours"]]
+files = [open(f"{area_name} {column}.txt", "w") for column in ["GUID", "Population", "Neighbours"]]
 for g, p, n in zip(area_df.GUID.values, area_df.Population.values, area_df.Neighbours.values):
-  files[0].write("%s\n" % g)
-  files[1].write("%s\n" % p)
+  files[0].write(f"{g}\n")
+  files[1].write(f"{p}\n")
   for i in n:
-    files[2].write("%s " % i)
+    files[2].write(f"{i} ")
   files[2].write("\n")
 for file in files:
   file.close()
