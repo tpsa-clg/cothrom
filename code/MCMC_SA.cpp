@@ -15,14 +15,15 @@ int main(int argc, char *argv[])
   int max = omp_get_max_threads();
   omp_set_num_threads(max);
 
-  std::string constituency_name = argv[1];
+  std::string map_name = argv[1];
+  std::string data_dir = "data/" + map_name + "/";
   std::string line;
   vector<int> populations(0);
-  std::ifstream pop_file(constituency_name + " Population.txt");
+  std::ifstream pop_file(data_dir + "Population.txt");
   while (getline(pop_file, line)) populations.push_back(stoi(line));
   pop_file.close();
   vector<vector<int>> neighbours(0);
-  std::ifstream nei_file(constituency_name + " Neighbours.txt");
+  std::ifstream nei_file(data_dir + "Neighbours.txt");
   while (getline(nei_file, line))
   {
     std::stringstream ss(line);
@@ -34,18 +35,18 @@ int main(int argc, char *argv[])
   nei_file.close();
 
   int seats = atoi(argv[2]);
-  Map constituency(seats, populations, neighbours);
-  vector<int> init = constituency.config();
+  Map map(seats, populations, neighbours);
+  vector<int> init = map.config();
   valarray<double> J = { 1., 2., 1. };
-  valarray<double> J_Z = J/valarray<double>{ 2.*(constituency.Q()-1), 1.*constituency.EDs(), 1.*constituency.borders() };
+  valarray<double> J_Z = J/valarray<double>{ 2.*(map.Q()-1), 1.*map.EDs(), 1.*map.borders() };
   int max_pop = 0, max_nei = 0;
-  for (int x = 0; x < constituency.EDs(); x ++)
+  for (int x = 0; x < map.EDs(); x ++)
   {
-    if (constituency.pop(x) > max_pop) max_pop = constituency.pop(x);
-    if (constituency.nei(x).size() > max_nei) max_nei = constituency.nei(x).size();
+    if (map.pop(x) > max_pop) max_pop = map.pop(x);
+    if (map.nei(x).size() > max_nei) max_nei = map.nei(x).size();
   }
 
-  double max_T = -(valarray<double>{ 2.*max_pop/constituency.av_pop(), 1.*(1+max_nei/2), 1.*max_nei }*J_Z).sum()/log(.99);
+  double max_T = -(valarray<double>{ 2.*max_pop/map.av_pop(), 1.*(1+max_nei/2), 1.*max_nei }*J_Z).sum()/log(.99);
   vector<double> Ts = { max_T };
   for (int t = 0; t < 150; t ++) Ts.push_back(Ts.back()*.9);
   int N = 10000, N_disc = 1000;
@@ -61,14 +62,14 @@ int main(int argc, char *argv[])
     std::cout << t << "\n";
 
     valarray<double> J_ZT = J_Z / Ts[t], H(3);
-    for (int n = 0; n < N_disc; n ++) constituency.GS_Sweep(H, J_ZT);
+    for (int n = 0; n < N_disc; n ++) map.GS_Sweep(H, J_ZT);
 
-    H = constituency.H();
+    H = map.H();
     vector<vector<double>> H_chain(3, vector<double>(N));
     vector<double> H_sum_chain(N), acc_chain(N);
     for (int n = 0; n < N; n ++)
     {
-      acc_chain[n] = constituency.GS_Sweep(H, J_ZT);
+      acc_chain[n] = map.GS_Sweep(H, J_ZT);
       for (int i = 0; i < 3; i ++) H_chain[i][n] = H[i];
       H_sum_chain[n] = (J_Z*H).sum();
     }
@@ -92,16 +93,16 @@ int main(int argc, char *argv[])
     times[t] = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
   }
 
-  vector<int> fina = constituency.config();
+  vector<int> fina = map.config();
   std::ofstream file;
-  file.open(constituency_name + " configs.csv");
-  file << "Q," << constituency.Q() << ",N," << N_disc << "," << N;
+  file.open(data_dir + "configs.csv");
+  file << "Q," << map.Q() << ",N," << N_disc << "," << N;
   file << "\nJ," << J[0];
   for (int j = 1; j < J.size(); j ++) file << "," << J[j];
   file << "\ninit," << init.front();
-  for (int x = 1; x < constituency.EDs(); x ++) file << "," << init[x];
+  for (int x = 1; x < map.EDs(); x ++) file << "," << init[x];
   file << "\nfina," << fina.front();
-  for (int x = 1; x < constituency.EDs(); x ++) file << "," << fina[x];
+  for (int x = 1; x < map.EDs(); x ++) file << "," << fina[x];
   file << "\nT," << Ts.front();
   for (int t = 1; t < Ts.size(); t ++) file << "," << Ts[t];
   file << "\ntime," << times.front();

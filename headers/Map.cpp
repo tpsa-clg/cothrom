@@ -78,7 +78,7 @@ valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& p
   int deltaHD_prop = 0;
   for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == prop) deltaHD_prop --;
 
-  return valarray<double>{ (abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/av_pop_, q_group_[prop].size() - pngs.size() - fabs(q_group_[prop].size() - 1.), double(deltaHD_prop) };
+  return valarray<double>{ double(abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/av_pop_, q_group_[prop].size() - pngs.size() - fabs(q_group_[prop].size() - 1.), double(deltaHD_prop) };
 }
 
 void Map::config_update_()

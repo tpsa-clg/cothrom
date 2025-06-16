@@ -5,15 +5,18 @@ import glob
 import requests
 import os
 
+data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir, "data"])
+os.makedirs(data_dir, exist_ok=True)
+
 # Downloading necessary files if not in current directory
-pop_file = glob.glob("F1060*.csv")
+pop_file = glob.glob(os.path.join(data_dir, "F1060*.csv"))
 if pop_file:
   pop_file = pop_file[0]
 else:
   print("CSO population data not in current directory. Downloading from https://data.cso.ie/table/F1060...")
   r = requests.get(r"https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.PxAPIv1/en/76/C2022P1/F1060?query=%7B%22query%22:%5B%7B%22code%22:%22STATISTIC%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22F1060C01%22%5D%7D%7D,%7B%22code%22:%22C02199V02655%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22-%22%5D%7D%7D%5D,%22response%22:%7B%22format%22:%22csv%22,%22pivot%22:null,%22codes%22:true%7D%7D")
   if r.status_code == 200:
-    pop_file = "F1060.csv"
+    pop_file = os.path.join(data_dir, "F1060.csv")
     f = open(pop_file, "wb")
     f.write(r.content)
     f.close()
@@ -34,14 +37,14 @@ file_URLs = ["https://data-osi.opendata.arcgis.com/api/download/v1/items/" + suf
   "deba50580cc24e4eb9cf50eb3cfebf69/geojson?layers=1"]]
 geo_files = []
 for m, map in enumerate(maps):
-  geo_file = glob.glob(f"*{map}*.geojson")
+  geo_file = glob.glob(os.path.join(data_dir, f"*{map}*.geojson"))
   if geo_file:
     geo_files.append(geo_file[0])
   else:
     print(f"Tailte Éireann {map} data not in current directory. Downloading from {file_URLs[m]}...")
     r = requests.get(file_URLs[m])
     if r.status_code == 200:
-      geo_files.append(f"{map}.geojson")
+      geo_files.append(os.path.join(data_dir, f"{map}.geojson"))
       f = open(geo_files[-1], "wb")
       f.write(r.content)
       f.close()
@@ -1244,5 +1247,5 @@ print("Complement constituency data added.")
 
 
 # Saving to .csv
-important_data.to_csv("ED_data.csv", columns=["GUID", "Name", "County", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
+important_data.to_csv(os.path.join(data_dir, "ED_data.csv"), columns=["GUID", "Name", "County", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
 print("Data saved to ED_data.csv.")
