@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
 #include <valarray>
 using std::valarray;
 #include <chrono>
@@ -27,9 +28,9 @@ int main(int argc, char *argv[])
   while (getline(nei_file, line))
   {
     std::stringstream ss(line);
-    int n;
+    std::string n;
     vector<int> nei(0);
-    while (ss >> n) nei.push_back(n);
+    while (getline(ss, n, ' ')) nei.push_back(stoi(n));
     neighbours.push_back(nei);
   }
   nei_file.close();
@@ -37,7 +38,10 @@ int main(int argc, char *argv[])
   int seats = atoi(argv[2]);
   Map map(seats, populations, neighbours);
   vector<int> init = map.config();
-  valarray<double> J = { 1., 2., 1. };
+  std::stringstream ss(argv[3]);
+  vector<double> J_vec({1.});
+  while (getline(ss, line, ',')) J_vec.push_back(stod(line));
+  valarray<double> J(J_vec.data(), J_vec.size());
   valarray<double> J_Z = J/valarray<double>{ 2.*(map.Q()-1), 1.*map.EDs(), 1.*map.borders() };
   int max_pop = 0, max_nei = 0;
   for (int x = 0; x < map.EDs(); x ++)

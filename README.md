@@ -1,5 +1,4 @@
 Current state of affairs
-- make coupling constants command line input instead of pre-compiled variables in `MCMC_SA.cpp`
 - `plot.py` unfinished: need to plot energies/variances/acceptance rates vs temperature, initial + final maps, bar charts etc. of each grouping's Hamiltonian contribution (i.e. population, compactness)
 - make histograms in `txt_for_MCMC.py` e.g. population, neighbours, area, perimeter and compare to national histograms
 - change population term to allow for multiple multiple-seat groupings - not much need for an implementation to specify single-seat groupings but could do this with class inheritance where multiple-seat stuff is private in `Map` and everything else is protected, `SSMap` inherits from `Map` and makes its own single-seat stuff private?
@@ -22,10 +21,10 @@ python3 txt_for_MCMC.py County LONGFORD,WESTMEATH,OFFALY,LAOIS "Midland counties
 python3 txt_for_MCMC.py Constituency "CORK NORTH-CENTRAL","CORK NORTH-WEST","CORK SOUTH-CENTRAL","CORK SOUTH-WEST" Cork
 ````
 
-`MCMC_SA.cpp` - uses Metropolis/heatbath algorithm to approximate optimal configuration for given area and coupling constants via simulated annealing, executable takes area name and number of seats as command line input assuming files for population and neighbours exist in the current directory, e.g.
+`MCMC_SA.cpp` - uses Metropolis/heatbath algorithm to approximate optimal configuration for given area and coupling constants via simulated annealing, executable takes area name, number of seats, and (non-population) coupling constants as command line input assuming files for population and neighbours exist in the current directory, e.g.
 ````
-./MCMC_SA "Midland counties" 11
-./MCMC_SA Cork 20
+./MCMC_SA "Midland counties" 11 2,1
+./MCMC_SA Cork 20 4,0.72
 ````
 
 `plot.py` - plots statistical physics observables (Hamiltonians, specific heat capacities, acceptance rates) from `MCMC_SA.cpp` output
