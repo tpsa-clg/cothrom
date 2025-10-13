@@ -3,6 +3,8 @@
 
 double mean(const vector<double>& chain)
 {
+  // chain: Markov chain
+
   double sum = 0.;
   #pragma omp parallel for reduction(+:sum)
   for (int n = 0; n < chain.size(); n ++) sum += chain[n];
@@ -10,6 +12,8 @@ double mean(const vector<double>& chain)
 }
 double quad_sum(const vector<double>& chain, const double& mu)
 {
+  // mu: mean of Markov chain
+
   double sum = 0.;
   #pragma omp parallel for reduction(+:sum)
   for (int n = 0; n < chain.size(); n ++) sum += pow(chain[n] - mu, 2.);
@@ -22,6 +26,10 @@ double mean_error(const vector<double>& chain, const double& mu)
 
 void autocorr(const vector<double>& chain, const double& mu, double& tau, double& deltatau)
 {
+  // tau: autocorrelation time
+  // deltatau: error in autocorrelation time
+  // autocorrelation time & corresponding error according to https://doi.org/10.1007/978-1-4899-0319-8_6 chap. 3
+
   int N = chain.size(), M = 0;
   double fac = 2.*N/quad_sum(chain, mu);
   tau = 1.;
