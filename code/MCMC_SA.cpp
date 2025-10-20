@@ -13,11 +13,6 @@ using std::valarray;
 
 int main(int argc, char *argv[])
 {
-  // set the number of OpenMP threads to the max
-  // TODO definitely change this: either take number as input or specify that it should be set in the command line
-  int max = omp_get_max_threads();
-  omp_set_num_threads(max);
-
   // custom name for area of consideration - first command line argument
   std::string map_name = argv[1];
   // directory for reading population & neighbour data and saving configs
@@ -64,29 +59,39 @@ int main(int argc, char *argv[])
     if (map.nei(x).size() > max_nei) max_nei = map.nei(x).size();
   }
   // choosing the starting temperature - defined as temperature at which the highest energy increase is accepted with 99% probability
-  double max_T = -(valarray<double>{ 2.*max_pop/map.av_pop(), 1.*(1+max_nei/2), 1.*max_nei }*J_Z).sum()/log(.99);
-  // getting annealing temperatures
-  // TODO change this to instead stop algorithm after no more updates (instead of guessing a cold enough temperature)
-  vector<double> Ts = { max_T };
-  for (int t = 0; t < 150; t ++) Ts.push_back(Ts.back()*.9);
+  double T = -(valarray<double>{ 2.*max_pop/map.av_pop(), 1.*(1+max_nei/2), 1.*max_nei }*J_Z).sum()/log(.99);
+  vector<double> Ts(0);
+  // temperature cooling factor
+  double cool = .9;
   // number of measured and discarded sweeps
-  int N = 10000, N_disc = 1000;
+  ss.clear();
+  ss.str("");
+  ss.str(argv[4]);
+  getline(ss, line, ',');
+  int N = stoi(line);
+  getline(ss, line, ',');
+  int N_disc = stoi(line);
 
   // vectors for storing observables & errors & autocorrelation times at each temperature
-  vector<vector<double>> Hs(3, vector<double>(Ts.size())), H_errs(3, vector<double>(Ts.size())), H_taus(3, vector<double>(Ts.size())), H_tau_errs(3, vector<double>(Ts.size()));
-  vector<double> H_sums(Ts.size()), H_sum_errs(Ts.size()), H_sum_taus(Ts.size()), H_sum_tau_errs(Ts.size());
-  vector<double> times(Ts.size());
-  vector<double> accs(Ts.size()), acc_errs(Ts.size()), acc_taus(Ts.size()), acc_tau_errs(Ts.size());
+  vector<vector<double>> Hs(3, vector<double>(0)), H_errs(3, vector<double>(0)), H_taus(3, vector<double>(0)), H_tau_errs(3, vector<double>(0));
+  vector<double> H_sums(0), H_sum_errs(0), H_sum_taus(0), H_sum_tau_errs(0);
+  vector<double> times(0);
+  vector<double> accs(0), acc_errs(0), acc_taus(0), acc_tau_errs(0);
 
   // looping over temperatures
-  for (int t = 0; t < Ts.size(); t ++)
+  T /= cool;  
+  do
   {
     // recording start time
     auto start = std::chrono::steady_clock::now();
-    std::cout << t << "\n";
+
+    // getting new temperature
+    T *= cool;
+    Ts.push_back(T);
+    std::cout << Ts.size() << " " << T << "\n";
 
     // overall Hamiltonian coefficients (coupling + normalisation + temperature) and Hamiltonian tally
-    valarray<double> J_ZT = J_Z / Ts[t], H(3);
+    valarray<double> J_ZT = J_Z / T, H(3);
     // thermalising/equilibrising
     for (int n = 0; n < N_disc; n ++) map.GS_Sweep(H, J_ZT);
 
@@ -104,27 +109,37 @@ int main(int argc, char *argv[])
     }
 
     // stats stuff for Hamiltonians - averages, errors, and autocorrelations
+    // TODO probably use a function for this...
+    double tau, deltatau;
     for (int i = 0; i < 3; i ++)
     {
-      Hs[i][t] = mean(H_chain[i]);
-      autocorr(H_chain[i], Hs[i][t], H_taus[i][t], H_tau_errs[i][t]);
-      H_errs[i][t] = mean_error(H_chain[i], Hs[i][t])*sqrt(H_taus[i][t]);
+      Hs[i].push_back(mean(H_chain[i]));
+      autocorr(H_chain[i], Hs[i].back(), tau, deltatau);
+      H_taus[i].push_back(tau);
+      H_tau_errs[i].push_back(deltatau);
+      H_errs[i].push_back(mean_error(H_chain[i], Hs[i].back())*sqrt(H_taus[i].back()));
     }
 
     // same as above but for total Hamiltonian
-    H_sums[t] = mean(H_sum_chain);
-    autocorr(H_sum_chain, H_sums[t], H_sum_taus[t], H_sum_tau_errs[t]);
-    H_sum_errs[t] = mean_error(H_sum_chain, H_sums[t])*sqrt(H_sum_taus[t]);
+    H_sums.push_back(mean(H_sum_chain));
+    autocorr(H_sum_chain, H_sums.back(), tau, deltatau);
+    H_sum_taus.push_back(tau);
+    H_sum_tau_errs.push_back(deltatau);
+    H_sum_errs.push_back((mean_error(H_sum_chain, H_sums.back())*sqrt(H_sum_taus.back())));
 
     // and again for acceptance rate
-    accs[t] = mean(acc_chain);
-    autocorr(acc_chain, accs[t], acc_taus[t], acc_tau_errs[t]);
-    acc_errs[t] = mean_error(acc_chain, accs[t])*sqrt(acc_taus[t]);
+    accs.push_back(mean(acc_chain));
+    autocorr(acc_chain, accs.back(), tau, deltatau);
+    acc_taus.push_back(tau);
+    acc_tau_errs.push_back(deltatau);
+    acc_errs.push_back(mean_error(acc_chain, accs.back())*sqrt(acc_taus.back()));
 
     // getting runtime
     auto finish = std::chrono::steady_clock::now();
-    times[t] = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+    times.push_back(std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count());
   }
+  // finish annealing when no new states have been accepted
+  while (accs.back() >= 1. / double(N));
 
   // final configuration
   vector<int> fina = map.config();
@@ -133,7 +148,7 @@ int main(int argc, char *argv[])
   std::ofstream file;
   file.open(data_dir + "configs.csv");
   // groupings, measured sweeps, discarded sweeps, coupling constants
-  file << "Q," << map.Q() << ",N," << N_disc << "," << N;
+  file << "Q," << map.Q() << ",N," << N << "," << N_disc;
   file << "\nJ," << J[0];
   for (int j = 1; j < J.size(); j ++) file << "," << J[j];
   // initial and final configurations

@@ -219,7 +219,7 @@ int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
     int prop;
     do { prop = int_dist_(r); } while (prop == ED_q_[x]);
 
-    // calculating the propsoed change in each Hamiltonian
+    // calculating the proposed change in each Hamiltonian
     int cqg_idx;
     vector<vector<int>> cngs, pngs(0);
     vector<int> pqg_idxs(0);

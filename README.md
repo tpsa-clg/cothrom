@@ -8,7 +8,6 @@ Current state of affairs
 - no temporal continuity term
 - nothing for Pareto front
 - test alternative parallelisation e.g. keep threads open and use single/master thread when needed rather than closing and re-launching threads
-- consider stopping annealing when new states stop being accepted, instead of continuing for entire temperature range
 - try useful small redistricting instead of proofs-of-concept e.g. Dublin constituencies, Cork constituencies, European MP constituencies, various council LEAs (note that these all conveniently have no county borders involved so can work on this without county border Hamiltonian. EU MP constituencies can theoretically have border violations but have always comprised whole counties)
 - duplicate `combine_data.py` for LEAs/counties/cities & counties/constituencies - could do more proof-of-concept testing on full-scale Dáil map using 26 counties/33 cities & counties/43 constituencies/166 LEAs before using 3420 EDs - also would be useful for EU MP map using counties
 - consider something like `pyerrors` for observable and error tracking - would need to store measurements for each config (approx. 30MB for each Hamiltonian + acceptance rate at 10,000 iterations and 151 temperatures) but can do all stats in Python instead of C++
@@ -17,14 +16,18 @@ Current state of affairs
 
 `txt_files_for_MCMC.py` - creates `.txt` files with GUID, population, and neighbours for each ED in specified area for `MCMC_SA.cpp` - command line input takes the form `area_type area_list area_name`, e.g.
 ````
-python3 txt_for_MCMC.py County LONGFORD,WESTMEATH,OFFALY,LAOIS "Midland counties"
-python3 txt_for_MCMC.py Constituency "CORK NORTH-CENTRAL","CORK NORTH-WEST","CORK SOUTH-CENTRAL","CORK SOUTH-WEST" Cork
+python3 code/txt_for_MCMC.py County LONGFORD,WESTMEATH,OFFALY,LAOIS "Midland counties"
+python3 code/txt_for_MCMC.py Constituency "CORK NORTH-CENTRAL","CORK NORTH-WEST","CORK SOUTH-CENTRAL","CORK SOUTH-WEST" Cork
 ````
 
-`MCMC_SA.cpp` - uses Metropolis/heatbath algorithm to approximate optimal configuration for given area and coupling constants via simulated annealing, executable takes area name, number of seats, and (non-population) coupling constants as command line input assuming files for population and neighbours exist in the current directory, e.g.
+`MCMC_SA.cpp` - uses Metropolis/heatbath algorithm to approximate optimal configuration for given area and coupling constants via simulated annealing, executable takes area name, number of seats, (non-population) coupling constants, and number of measured/discarded iterations per temperature as command line input assuming files for population and neighbours exist in the current directory, e.g.
 ````
-./MCMC_SA "Midland counties" 11 2,1
-./MCMC_SA Cork 20 4,0.72
+./MCMC_SA "Midland counties" 11 2,1 5000,100
+./MCMC_SA Cork 20 4,0.72 10000,1000
+````
+This also uses OpenMP to parallelise computations - number of threads should be set in the command line via
+````
+OMP_SET_NUM_THREADS=num_threads
 ````
 
 `plot.py` - plots statistical physics observables (Hamiltonians, specific heat capacities, acceptance rates) from `MCMC_SA.cpp` output
