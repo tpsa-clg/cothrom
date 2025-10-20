@@ -14,7 +14,7 @@ area_name = sys.argv[3]
 # Reading required data
 data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir, "data"])
 full_df = pd.read_csv(os.path.join(data_dir, "ED_data.csv"), usecols=["GUID", area_type, "Population", "Neighbours", "Area", "Perimeter"])
-area_df = full_df[full_df[area_type].isin(area_list)].sort_values(by="GUID").reset_index(drop=True)
+area_df = full_df[full_df[area_type].isin(area_list)].reset_index(drop=True)
 intersect = set(area_df.GUID.values)
 area_df.loc[:, "Neighbours"] = np.array([eval(i) & intersect for i in area_df.Neighbours.values], dtype=object)
 area_df.loc[:, "Neighbours"] = np.array([area_df.index[area_df["GUID"].isin(i)].tolist() for i in area_df.Neighbours.values], dtype=object)

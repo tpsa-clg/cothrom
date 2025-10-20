@@ -11,6 +11,7 @@ os.makedirs(data_dir, exist_ok=True)
 pop_file = glob.glob(os.path.join(data_dir, "F1060*.csv"))
 if pop_file:
   pop_file = pop_file[0]
+  r = 0
 else:
   print("CSO population data not in data directory. Downloading from https://data.cso.ie/table/F1060...")
   r = requests.get(r"https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.PxAPIv1/en/76/C2022P1/F1060?query=%7B%22query%22:%5B%7B%22code%22:%22STATISTIC%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22F1060C01%22%5D%7D%7D,%7B%22code%22:%22C02199V02655%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22-%22%5D%7D%7D%5D,%22response%22:%7B%22format%22:%22csv%22,%22pivot%22:null,%22codes%22:true%7D%7D")
@@ -55,19 +56,19 @@ del r
 
 
 # Merging ED datasets from CSO (population) & Tailte Éireann (name, county, LEA, geography)
-important_data = gpd.read_file(geo_files[0], columns=["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]).rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID")
+important_data = gpd.read_file(geo_files[0], columns=["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]).rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID").sort_values("GUID").reset_index(drop=True)
 print("CSO & Tailte Éireann data merged.")
 
 
 # Obtaining extra geographical data (area, perimeter, neighbouring EDs)
 important_data["Area"], important_data["Perimeter"] = important_data.area/(1000.**2.), important_data.length/(1000.)
 print("Area and perimeter data added.")
-important_data["Neighbours"] = [{important_data.GUID[j] for j, touch in enumerate(important_data.geometry.touches(important_data.geometry[i])) if touch} for i in range(len(important_data))]
+important_data["Neighbours"] = [{important_data.GUID[j] for j, touch in enumerate(important_data.geometry.touches(geom)) if touch} for geom in important_data.geometry]
 important_data.drop(columns="geometry", inplace=True)
 print("100m neighbours data added.")
 for map, geo_file in zip(maps[1:], geo_files[1:]):
-  gdf = gpd.read_file(geo_file, columns=["ED_GUID", "geometry"])
-  important_data.loc[:, "Neighbours"] = [important_data.Neighbours[i] | {gdf.ED_GUID[j] for j, touch in enumerate(gdf.geometry.touches(gdf.geometry[i])) if touch} for i in range(len(gdf))]
+  gdf = gpd.read_file(geo_file, columns=["ED_GUID", "geometry"]).sort_values("ED_GUID").reset_index(drop=True)
+  important_data.loc[:, "Neighbours"] = [neigh | {gdf.ED_GUID[j] for j, touch in enumerate(gdf.geometry.touches(gdf.geometry[i])) if touch} for i, neigh in enumerate(important_data.Neighbours)]
   print(f"{map} neighbours data merged.")
 del gdf
 
