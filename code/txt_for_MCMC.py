@@ -60,4 +60,3 @@ ax.set_title("Neighbours")
 fig.savefig(os.path.join(file_dir, "Neighbours.pdf"), bbox_inches="tight")
 plt.close("all")
 del fig, ax
-

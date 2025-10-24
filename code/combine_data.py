@@ -56,7 +56,7 @@ del r
 
 
 # Merging ED datasets from CSO (population) & Tailte Éireann (name, county, LEA, geography)
-important_data = gpd.read_file(geo_files[0], columns=["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]).rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID").sort_values("GUID").reset_index(drop=True)
+important_data = gpd.read_file(geo_files[0])[["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]].rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID").sort_values("GUID").reset_index(drop=True)
 print("CSO & Tailte Éireann data merged.")
 
 

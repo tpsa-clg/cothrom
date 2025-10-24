@@ -3,6 +3,7 @@
 *.txt
 *.geojson
 *.csv
+*.html
 
 # old directories
 *stuff/

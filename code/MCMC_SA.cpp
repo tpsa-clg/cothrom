@@ -142,57 +142,32 @@ int main(int argc, char *argv[])
   while (accs.back() >= 1. / double(N));
 
   // final configuration
-  vector<int> fina = map.config();
+  vector<int> final = map.config();
   // printing everything to .csv
-  // TODO for the love of God make this less cluttered
   std::ofstream file;
+  // TODO save parameters in filename
   file.open(data_dir + "configs.csv");
   // groupings, measured sweeps, discarded sweeps, coupling constants
-  file << "Q," << map.Q() << ",N," << N << "," << N_disc;
-  file << "\nJ," << J[0];
-  for (int j = 1; j < J.size(); j ++) file << "," << J[j];
+  file << "Q," << map.Q() << "\n";
+  file << "N," << N << "," << N_disc << "\n";
+  file << "J";
+  for (int j = 0; j < J.size(); j ++) file << "," << J[j];
   // initial and final configurations
-  file << "\ninit," << init.front();
-  for (int x = 1; x < map.EDs(); x ++) file << "," << init[x];
-  file << "\nfina," << fina.front();
-  for (int x = 1; x < map.EDs(); x ++) file << "," << fina[x];
-  // temperatures, time per temperature
-  file << "\nT," << Ts.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << Ts[t];
-  file << "\ntime," << times.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << times[t];
-  // Hamiltonians & errors & autocorrelation times & errors
-  file << "\nH";
-  for (int i = 0; i < 3; i ++)
+  file << "\ninit";
+  for (int x = 0; x < map.EDs(); x ++) file << "," << init[x];
+  file << "\nfinal";
+  for (int x = 0; x < map.EDs(); x ++) file << "," << final[x];
+  // all data vs temperature
+  // TODO loop over column titles instead of hardcoding
+  file << "\nT,HP,HP_err,HP_tau,HP_tau_err,HC,HC_err,HC_tau,HC_tau_err,HD,HD_err,HD_tau,HD_tau_err,H,H_err,H_tau,H_tau_err,acc,acc_err,acc_tau,acc_tau_err,time\n";
+  for (int t = 0; t < Ts.size(); t ++)
   {
-    file << "\n" << Hs[i].front();
-    for (int t = 1; t < Ts.size(); t ++) file << "," << Hs[i][t];
-    file << "\n" << H_errs[i].front();
-    for (int t = 1; t < Ts.size(); t ++) file << "," << H_errs[i][t];
-    file << "\n" << H_taus[i].front();
-    for (int t = 1; t < Ts.size(); t ++) file << "," << H_taus[i][t];
-    file << "\n" << H_tau_errs[i].front();
-    for (int t = 1; t < Ts.size(); t ++) file << "," << H_tau_errs[i][t];
+    file << Ts[t] << ",";
+    for (int i = 0; i < 3; i ++) file << Hs[i][t] << "," << H_errs[i][t] << "," << H_taus[i][t] << "," << H_tau_errs[i][t] << ",";
+    file << H_sums[t] << "," << H_sum_errs[t] << "," << H_sum_taus[t] << "," << H_sum_tau_errs[t] << ",";
+    file << accs[t] << "," << acc_errs[t] << "," << acc_taus[t] << "," << acc_tau_errs[t] << ",";
+    file << times[t] << "\n";
   }
-  // same for total Hamiltonian
-  file << "\nH_sum\n" << H_sums.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << H_sums[t];
-  file << "\n" << H_sum_errs.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << H_sum_errs[t];
-  file << "\n" << H_sum_taus.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << H_sum_taus[t];
-  file << "\n" << H_sum_tau_errs.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << H_sum_tau_errs[t];
-  // same for acceptance rates
-  file << "\nacc\n" << accs.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << accs[t];
-  file << "\n" << acc_errs.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << acc_errs[t];
-  file << "\n" << acc_taus.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << acc_taus[t];
-  file << "\n" << acc_tau_errs.front();
-  for (int t = 1; t < Ts.size(); t ++) file << "," << acc_tau_errs[t];
-  file.close();
 
   return 0;
 }
