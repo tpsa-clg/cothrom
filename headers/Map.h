@@ -9,8 +9,8 @@ class Map
 {
   private:
     /* INPUTS */
-    // Number of (single-seat) constituencies.
-    const int Q_;
+    // Number of seats per constituency.
+    const vector<int> seats_;
     // Population and neighbours of each ED.
     // Integers represent positions in the given population/neighbour lists.
     const vector<int> ED_pop_;
@@ -23,14 +23,15 @@ class Map
     /* FIXED PARAMETERS*/
     // Total population, number of EDs, and number of borders between EDs.
     int total_pop_, EDs_, borders_;
-    // Average population per constituency.
+    // Number of constituencies and average population per constituency.
+    int Q_;
     double av_pop_;
     // Uniform distribution over constituency number.
     // Used to propose a constituency at random for the Metropolis algorithm.
     std::uniform_int_distribution<int> int_dist_;
 
     /* DYNAMIC PARAMETERS*/
-    // Population of each constituency (minus average population per constituency).
+    // Population of each constituency (minus ideal population, i.e. average population per constituency * number of seats in constituency).
     vector<double> q_pop_;
     // Connected subsets of each constituency.
     // A constituency is contiguous when it has one connected subset.
@@ -55,15 +56,16 @@ class Map
     void site_update_(const int& x, const int& prop, const int& cqg_idx, vector<vector<int>>& cngs, vector<int>& pqg_idxs, vector<vector<int>>& pngs);
   public:
     // Class constructor.
-    Map(const int& constituencies, const vector<int>& populations, const vector<vector<int>>& neighbours);
+    Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours);
 
     // Return private variables.
-    int Q() const { return Q_; }
+    int seat(const int& q) const { return seats_[q]; }
     int pop(const int& x) const { return ED_pop_[x]; }
     vector<int> nei(const int& x) const { return ED_nei_[x]; }
     vector<int> config() const { return ED_q_; }
     int EDs() const { return EDs_; }
     int borders() const { return borders_; }
+    int Q() const { return Q_; }
     double av_pop() const { return av_pop_; }
 
     // Globally update a map's configuration.

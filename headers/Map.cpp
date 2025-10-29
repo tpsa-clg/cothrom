@@ -83,7 +83,7 @@ valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int
   for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == curr) deltaHD_curr ++;
 
   // return the changes to the population, contiguity, and compactness Hamiltonians
-  return valarray<double>{ (abs(q_pop_[curr] - ED_pop_[x]) - abs(q_pop_[curr]))/av_pop_, fabs(q_group_[curr].size() + cngs.size() - 2.) - q_group_[curr].size() + 1, double(deltaHD_curr) };
+  return valarray<double>{ (abs(q_pop_[curr] - ED_pop_[x]) - abs(q_pop_[curr]))/(seats_[curr] * av_pop_), fabs(q_group_[curr].size() + cngs.size() - 2.) - q_group_[curr].size() + 1, double(deltaHD_curr) };
 }
 valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const
 {
@@ -112,13 +112,13 @@ valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& p
   for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == prop) deltaHD_prop --;
 
   // return the changes to the population, contiguity, and compactness Hamiltonians
-  return valarray<double>{ double(abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/av_pop_, q_group_[prop].size() - pngs.size() - fabs(q_group_[prop].size() - 1.), double(deltaHD_prop) };
+  return valarray<double>{ double(abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/(seats_[prop] * av_pop_), q_group_[prop].size() - pngs.size() - fabs(q_group_[prop].size() - 1.), double(deltaHD_prop) };
 }
 
 void Map::config_update_()
 {
   // re-initialise constituency populations
-  std::fill(q_pop_.begin(), q_pop_.end(), -av_pop_);
+  for (int q = 0; q < Q_; q ++) q_pop_[q] = -av_pop_ * seats_[q];
 
   // find each constituency's population and list of EDs
   vector<vector<int>> disconnected(Q_, vector<int>(0));
@@ -161,9 +161,9 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
   q_group_[prop].push_back(pxg);
 }
 
-Map::Map(const int& constituencies, const vector<int>& populations, const vector<vector<int>>& neighbours) : Q_(constituencies), ED_pop_(populations), ED_nei_(neighbours), ED_q_(populations.size()), total_pop_(0), EDs_(populations.size()), borders_(0), int_dist_(0, constituencies-1), q_pop_(constituencies), q_group_(constituencies)
+Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_q_(populations.size()), total_pop_(0), EDs_(populations.size()), borders_(0), Q_(seats.size()), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
 {
-  // constituencies: number of constituencies
+  // seats: number of seats per constituency
   // populations: list of ED populations
   // neighbours: list of ED neighbours
 
@@ -195,7 +195,7 @@ valarray<double> Map::H() const
   #pragma omp parallel for reduction(+:HP,HC)
   for (int q = 0; q < Q_; q ++)
   {
-    HP += abs(q_pop_[q]);
+    HP += abs(q_pop_[q]) / (seats_[q] * av_pop_);
     HC += abs(q_group_[q].size() - 1.);
   }
   // tally each ED's contribution to compactness Hamiltonian
@@ -203,7 +203,7 @@ valarray<double> Map::H() const
   #pragma omp parallel for reduction(+:HD)
   for (int x = 0; x < EDs_; x ++) for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[x] != ED_q_[ED_nei_[x][i]]) HD ++;
   // return population, contigutiy, and compactness Hamiltonians
-  return valarray<double>{ HP/av_pop_, HC, double(HD/2) };
+  return valarray<double>{ HP, HC, double(HD/2) };
 }
 
 int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)

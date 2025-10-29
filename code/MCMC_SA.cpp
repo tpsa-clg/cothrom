@@ -37,14 +37,18 @@ int main(int argc, char *argv[])
   }
   nei_file.close();
 
-  // number of (single-seat) constituencies - second command line argument
-  int constituencies = atoi(argv[2]);
+  // seats per constituency - second command line argument
+  std::stringstream ss(argv[2]);
+  vector<int> seats(0);
+  while (getline(ss, line, ',')) seats.push_back(stoi(line));
   // initialising map
-  Map map(constituencies, populations, neighbours);
+  Map map(seats, populations, neighbours);
   // storing the initial map configuration
   vector<int> init = map.config();
   // coupling constants - third command line argument
-  std::stringstream ss(argv[3]);
+  ss.clear();
+  ss.str("");
+  ss.str(argv[3]);
   vector<double> J_vec({1.});
   while (getline(ss, line, ',')) J_vec.push_back(stod(line));
   valarray<double> J(J_vec.data(), J_vec.size());
@@ -147,9 +151,10 @@ int main(int argc, char *argv[])
   std::ofstream file;
   // TODO save parameters in filename
   file.open(data_dir + "configs.csv");
-  // groupings, measured sweeps, discarded sweeps, coupling constants
-  file << "Q," << map.Q() << "\n";
-  file << "N," << N << "," << N_disc << "\n";
+  // seats, measured & discarded sweeps, coupling constants
+  file << "Q";
+  for (int q = 0; q < seats.size(); q ++) file << "," << seats[q];
+  file << "\nN," << N << "," << N_disc << "\n";
   file << "J";
   for (int j = 0; j < J.size(); j ++) file << "," << J[j];
   // initial and final configurations
