@@ -37,10 +37,10 @@ int main(int argc, char *argv[])
   }
   nei_file.close();
 
-  // number of groupings ("seats" for now while we're just doing single-seat stuff) - second command line argument
-  int seats = atoi(argv[2]);
+  // number of (single-seat) constituencies - second command line argument
+  int constituencies = atoi(argv[2]);
   // initialising map
-  Map map(seats, populations, neighbours);
+  Map map(constituencies, populations, neighbours);
   // storing the initial map configuration
   vector<int> init = map.config();
   // coupling constants - third command line argument

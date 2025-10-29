@@ -55,9 +55,9 @@ valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int
 {
   // x: ED index
   // cqg_idx: index of x's connected subset in q_group_[curr]
-  // cngs: the connected subsets that would result from removing x from its current grouping
+  // cngs: the connected subsets that would result from removing x from its current constituency
 
-  // current grouping of x
+  // current constituency of x
   int curr = ED_q_[x];
 
   // connected subset to which x belongs
@@ -78,7 +78,7 @@ valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int
   // re-connect the remaining EDs into connected subsets
   cngs = connect_(cxg);
 
-  // calculate the increase in the compactness Hamiltonian, i.e. the number of neighbours in x's grouping
+  // calculate the increase in the compactness Hamiltonian, i.e. the number of neighbours in x's constituency
   int deltaHD_curr = 0;
   for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == curr) deltaHD_curr ++;
 
@@ -88,13 +88,13 @@ valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int
 valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const
 {
   // pqg_idxs: indexes of x's neighbours' connected subsets in q_group_[prop]
-  // pngs: connected subsets to which x's neighbours in the proposed grouping belong
+  // pngs: connected subsets to which x's neighbours in the proposed constituency belong
 
   // iterate over neighbours of x
   for (int i = 0; i < ED_nei_[x].size(); i ++)
   {
     int y = ED_nei_[x][i];
-    // if neighbour is in proposed grouping, find its connected subset
+    // if neighbour is in proposed constituency, find its connected subset
     if (ED_q_[y] == prop) for (int g = 0; g < q_group_[prop].size(); g ++) if (std::find(q_group_[prop][g].begin(), q_group_[prop][g].end(), y) != q_group_[prop][g].end())
     {
       // append connected subset (index + subset) to lists if we haven't already
@@ -107,7 +107,7 @@ valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& p
     }
   }
 
-  // calculate the decrease in the compactness Hamiltonian, i.e. the number of neighbours in the proposed grouping
+  // calculate the decrease in the compactness Hamiltonian, i.e. the number of neighbours in the proposed constituency
   int deltaHD_prop = 0;
   for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == prop) deltaHD_prop --;
 
@@ -117,17 +117,17 @@ valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& p
 
 void Map::config_update_()
 {
-  // re-initialise grouping populations
+  // re-initialise constituency populations
   std::fill(q_pop_.begin(), q_pop_.end(), -av_pop_);
 
-  // find each grouping's population and list of EDs
+  // find each constituency's population and list of EDs
   vector<vector<int>> disconnected(Q_, vector<int>(0));
   for (int x = 0; x < EDs_; x ++)
   {
     q_pop_[ED_q_[x]] += ED_pop_[x];
     disconnected[ED_q_[x]].push_back(x);
   }
-  // find connected subsets for each grouping
+  // find connected subsets for each constituency
   #pragma omp parallel for
   for (int q = 0; q < Q_; q ++) q_group_[q] = connect_(disconnected[q]);
 }
@@ -135,11 +135,11 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
 {
   // parameters as defined in deltaH_curr_() and deltaH_prop_()
 
-  // get current grouping and update to proposed grouping
+  // get current constituency and update to proposed constituency
   int curr = ED_q_[x];
   ED_q_[x] = prop;
 
-  // update grouping populations
+  // update constituency populations
   q_pop_[curr] -= ED_pop_[x];
   q_pop_[prop] += ED_pop_[x];
 
@@ -148,7 +148,7 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
   q_group_[curr].pop_back();
   // insert new connected subsets (resulting from removing x from curr)
   q_group_[curr].insert(q_group_[curr].end(), make_move_iterator(cngs.begin()), make_move_iterator(cngs.end()));
-  // remove connected subsets of neighbours in proposed grouping
+  // remove connected subsets of neighbours in proposed constituency
   std::sort(pqg_idxs.begin(), pqg_idxs.end());
   vector<int> pxg = { x };
   for (int g = pqg_idxs.size()-1; g >= 0; g --)
@@ -163,11 +163,11 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
 
 Map::Map(const int& constituencies, const vector<int>& populations, const vector<vector<int>>& neighbours) : Q_(constituencies), ED_pop_(populations), ED_nei_(neighbours), ED_q_(populations.size()), total_pop_(0), EDs_(populations.size()), borders_(0), int_dist_(0, constituencies-1), q_pop_(constituencies), q_group_(constituencies)
 {
-  // constituencies: number of groupings
+  // constituencies: number of constituencies
   // populations: list of ED populations
   // neighbours: list of ED neighbours
 
-  // randomly assign ED groupings, get total & average populations and number of borders
+  // randomly assign ED constituencies, get total & average populations and number of borders
   for (int x = 0; x < EDs_; x ++)
   {
     ED_q_[x] = int_dist_(r);
@@ -177,7 +177,7 @@ Map::Map(const int& constituencies, const vector<int>& populations, const vector
   borders_ /= 2;
   av_pop_ = double(total_pop_) / double(Q_);
 
-  // get grouping populations and connected subsets
+  // get constituency populations and connected subsets
   config_update_();
 }
 
@@ -190,7 +190,7 @@ void Map::change_config(const vector<int>& config)
 
 valarray<double> Map::H() const
 {
-  // tally each grouping's contribution to population and contiguity Hamiltonians
+  // tally each constituency's contribution to population and contiguity Hamiltonians
   double HP = 0., HC = 0.;
   #pragma omp parallel for reduction(+:HP,HC)
   for (int q = 0; q < Q_; q ++)
@@ -215,7 +215,7 @@ int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
   // sweeping over all EDs
   for (int x = 0; x < EDs_; x ++)
   {
-    // proposing a grouping different to x's current grouping
+    // proposing a constituency different to x's current constituency
     int prop;
     do { prop = int_dist_(r); } while (prop == ED_q_[x]);
 
@@ -241,7 +241,7 @@ int Map::GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
 {
   // parameters as defined in MA_Sweep()
 
-  // "acceptance" rate, i.e. fraction of changes in ED groupings
+  // "acceptance" rate, i.e. fraction of changes in ED constituencies
   int alpha = 0;
   // sweeping over all EDs
   for (int x = 0; x < EDs_; x ++)
@@ -253,7 +253,7 @@ int Map::GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
     vector<vector<vector<int>>> pngs(Q_, vector<vector<int>>(0));
     vector<valarray<double>> deltaH(Q_, deltaH_curr_(x, cqg_idx, cngs));
     vector<double> prop_dist(Q_);
-    // iterating over all possible grouping allocations
+    // iterating over all constituencies
     #pragma omp parallel for
     for (int q = 0; q < Q_; q ++)
     {
@@ -263,18 +263,18 @@ int Map::GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
         deltaH[q] += deltaH_prop_(x, q, pqg_idxs[q], pngs[q]);
         prop_dist[q] = exp(-(J_ZT*deltaH[q]).sum());
       }
-      // no need to calculate "change" to current grouping
+      // no need to calculate "change" to current constituency
       else
       {
         deltaH[q] = valarray<double>{ 0., 0., 0. };
         prop_dist[q] = 1.;
       }
     }
-    // "propose" a new grouping based on calculated distribution
+    // "propose" a new constituency based on calculated distribution
     std::discrete_distribution<int> Gibbs_dist(prop_dist.begin(), prop_dist.end());
     int prop = Gibbs_dist(r);
 
-    // only need to update configuration if proposed and current groupings are different
+    // only need to update configuration if proposed and current constituencies are different
     if (prop != curr)
     {
       site_update_(x, prop, cqg_idx, cngs, pqg_idxs[prop], pngs[prop]);
