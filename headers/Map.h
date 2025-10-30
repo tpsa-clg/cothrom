@@ -9,32 +9,32 @@ class Map
 {
   private:
     /* INPUTS */
-    // Number of groupings of electoral divisions.
-    // This will be constituencies in the full-scale problem.
-    const int Q_;
+    // Number of seats per constituency.
+    const vector<int> seats_;
     // Population and neighbours of each ED.
     // Integers represent positions in the given population/neighbour lists.
     const vector<int> ED_pop_;
     const vector<vector<int>> ED_nei_;
 
     /* OUTPUTS */
-    // Grouping assigned to each electoral division, i.e. the configuration of our map.
+    // Constituency assigned to each electoral division, i.e. the configuration of our map.
     vector<int> ED_q_;
 
     /* FIXED PARAMETERS*/
     // Total population, number of EDs, and number of borders between EDs.
     int total_pop_, EDs_, borders_;
-    // Average population per grouping.
+    // Number of constituencies, number of seats, and average population per seat.
+    int Q_, total_seats_;
     double av_pop_;
-    // Uniform distribution over grouping number.
-    // Used to propose a grouping at random for the Metropolis algorithm.
+    // Uniform distribution over constituency number.
+    // Used to propose a constituency at random for the Metropolis algorithm.
     std::uniform_int_distribution<int> int_dist_;
 
     /* DYNAMIC PARAMETERS*/
-    // Population of each grouping (minus average population per grouping).
+    // Population of each constituency (minus ideal population, i.e. average population per constituency * number of seats in constituency).
     vector<double> q_pop_;
-    // Connected subsets of each grouping.
-    // A grouping is contiguous when it has one connected subset.
+    // Connected subsets of each constituency.
+    // A constituency is contiguous when it has one connected subset.
     vector<vector<vector<int>>> q_group_;
 
     // Return a vector of (geographically) connected subsets from a vector of EDs.
@@ -42,29 +42,32 @@ class Map
     // Also note: the ordering of subsets, and within each subset, is arbitrary.
     vector<vector<int>> connect_(vector<int>& disconnected) const;
 
-    // Return the change to each Hamiltonian by changing an ED's grouping allocation (from the current grouping/to a proposed grouping).
+    // Return the change to each Hamiltonian by changing an ED's constituency (from the current constituency/to a proposed constituency).
     // Also returns (by reference) some relevant quantities for site_update_().
     valarray<double> deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const;
     valarray<double> deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const;
 
-    // Update grouping populations & connected subsets.
+    // Update constituency populations & connected subsets.
     // Only used at construction and manual configuration changes.
     void config_update_();
 
-    // Update an ED's grouping allocation and makes corresponding population & connected subset changes.
+    // Update an ED's constituency and makes corresponding population & connected subset changes.
     // Used after each acceptance in the MCMC algorithms.
     void site_update_(const int& x, const int& prop, const int& cqg_idx, vector<vector<int>>& cngs, vector<int>& pqg_idxs, vector<vector<int>>& pngs);
   public:
     // Class constructor.
-    Map(const int& constituencies, const vector<int>& populations, const vector<vector<int>>& neighbours);
+    Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours);
 
     // Return private variables.
-    int Q() const { return Q_; }
+    int seat(const int& q) const { return seats_[q]; }
     int pop(const int& x) const { return ED_pop_[x]; }
     vector<int> nei(const int& x) const { return ED_nei_[x]; }
     vector<int> config() const { return ED_q_; }
+    int total_pop() const { return total_pop_; }
     int EDs() const { return EDs_; }
     int borders() const { return borders_; }
+    int Q() const { return Q_; }
+    int total_seats() const { return total_seats_; }
     double av_pop() const { return av_pop_; }
 
     // Globally update a map's configuration.

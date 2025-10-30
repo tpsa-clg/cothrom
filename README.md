@@ -1,6 +1,5 @@
 Current state of affairs
 - modify data saving (`MCMC_SA.cpp`) & plotting (`plot.py`) to allow for multiple sets of parameters
-- change population term to allow for multiple multiple-seat groupings - not much need for an implementation to specify single-seat groupings but could do this with class inheritance where multiple-seat stuff is private in `Map` and everything else is protected, `SSMap` inherits from `Map` and makes its own single-seat stuff private?
 - contiguity term extremely inefficient (breadth-first search instead of potential matrix multiplication?)
 - no testing of alternative compactness terms e.g. something with area and perimeter, convex hull, etc. rather than number of neighbours
 - crazy idea: consider combining contiguity and compactness into one shape term (since they are quite strongly correlated anyway, i.e. reducing one generally reduces the other) - could be sort of piecewise i.e. H_C + max(H_D) when not contiguous, H_D when contiguous - would still need to check contiguity at each step but could skip a lot of compactness calculations in high-temperature phase
@@ -20,10 +19,10 @@ python3 code/txt_for_MCMC.py County LONGFORD,WESTMEATH,OFFALY,LAOIS "Midland cou
 python3 code/txt_for_MCMC.py Constituency "CORK NORTH-CENTRAL","CORK NORTH-WEST","CORK SOUTH-CENTRAL","CORK SOUTH-WEST" Cork
 ````
 
-`MCMC_SA.cpp` - uses Metropolis/heatbath algorithm to approximate optimal configuration for given area and coupling constants via simulated annealing, executable takes area name, number of seats, (non-population) coupling constants, and number of measured/discarded iterations per temperature as command line input assuming files for population and neighbours exist in the current directory, e.g.
+`MCMC_SA.cpp` - uses Metropolis/heatbath algorithm to approximate optimal configuration for given area and coupling constants via simulated annealing, executable takes area name, number of seats per constituency, (non-population) coupling constants, and number of measured/discarded iterations per temperature as command line input assuming files for population and neighbours exist in the current directory, e.g.
 ````
-./MCMC_SA "Midland counties" 11 2,1 5000,100
-./MCMC_SA Cork 20 4,0.72 10000,1000
+./MCMC_SA "Midland counties" 2,3,3,3 2,1 5000,100
+./MCMC_SA Cork 3,3,4,5,5 4,0.72 10000,1000
 ````
 This also uses OpenMP to parallelise computations - number of threads should be set in the command line via
 ````
