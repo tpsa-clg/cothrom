@@ -53,8 +53,10 @@ int main(int argc, char *argv[])
   while (getline(ss, line, ',')) J_vec.push_back(stod(line));
   valarray<double> J(J_vec.data(), J_vec.size());
   // incorporating Hamiltonian normalisations into coupling constants
-  // TODO change the population normalisation - currently for single-seat constituencies
-  valarray<double> J_Z = J/valarray<double>{ 2.*(map.Q()-1), double(map.EDs()), double(map.borders()) };
+  // note: assumes constituency 0 has the smallest number of seats - can change this to find the smallest seat number but this works for now
+  valarray<double> Z = { double(map.total_seats()-map.seat(0)), double(map.EDs()), double(map.borders()) };
+  for (int q = 1; q < map.Q(); q ++) Z[0] += map.seat(q);
+  valarray<double> J_Z = J/Z;
 
   // getting maximum population and number of neighbours
   int max_pop = 0, max_nei = 0;

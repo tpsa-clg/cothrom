@@ -23,8 +23,8 @@ class Map
     /* FIXED PARAMETERS*/
     // Total population, number of EDs, and number of borders between EDs.
     int total_pop_, EDs_, borders_;
-    // Number of constituencies and average population per constituency.
-    int Q_;
+    // Number of constituencies, number of seats, and average population per seat.
+    int Q_, total_seats_;
     double av_pop_;
     // Uniform distribution over constituency number.
     // Used to propose a constituency at random for the Metropolis algorithm.
@@ -63,9 +63,11 @@ class Map
     int pop(const int& x) const { return ED_pop_[x]; }
     vector<int> nei(const int& x) const { return ED_nei_[x]; }
     vector<int> config() const { return ED_q_; }
+    int total_pop() const { return total_pop_; }
     int EDs() const { return EDs_; }
     int borders() const { return borders_; }
     int Q() const { return Q_; }
+    int total_seats() const { return total_seats_; }
     double av_pop() const { return av_pop_; }
 
     // Globally update a map's configuration.
