@@ -86,14 +86,12 @@ int main(int argc, char *argv[])
   vector<double> accs(0), acc_errs(0), acc_taus(0), acc_tau_errs(0);
 
   // looping over temperatures
-  T /= cool;  
   do
   {
     // recording start time
     auto start = std::chrono::steady_clock::now();
 
     // getting new temperature
-    T *= cool;
     Ts.push_back(T);
     std::cout << Ts.size() << " " << T << "\n";
 
@@ -144,6 +142,9 @@ int main(int argc, char *argv[])
     // getting runtime
     auto finish = std::chrono::steady_clock::now();
     times.push_back(std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count());
+
+    // annealing
+    T *= cool;
   }
   // finish annealing when no new states have been accepted
   while (accs.back() >= 1. / double(N));
