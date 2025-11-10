@@ -56,11 +56,11 @@ del r
 
 
 # Merging ED datasets from CSO (population) & Tailte Éireann (name, county, LEA, geography)
-important_data = gpd.read_file(geo_files[0])[["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]].rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "County", "CSO_LEA": "LEA"}).merge(pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID").sort_values("GUID").reset_index(drop=True)
+important_data = gpd.read_file(geo_files[0])[["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]].rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "Administrative Region", "CSO_LEA": "LEA"}).merge(pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID").sort_values("GUID").reset_index(drop=True)
 print("CSO & Tailte Éireann data merged.")
 
 
-# Obtaining extra geographical data (area, perimeter, neighbouring EDs)
+# Obtaining extra geographical data (area, perimeter, neighbouring EDs, counties)
 important_data["Area"], important_data["Perimeter"] = important_data.area/(1000.**2.), important_data.length/(1000.)
 print("Area and perimeter data added.")
 important_data["Neighbours"] = [{important_data.GUID[j] for j, touch in enumerate(important_data.geometry.touches(geom)) if touch} for geom in important_data.geometry]
@@ -71,24 +71,32 @@ for map, geo_file in zip(maps[1:], geo_files[1:]):
   important_data.loc[:, "Neighbours"] = [neigh | {gdf.ED_GUID[j] for j, touch in enumerate(gdf.geometry.touches(gdf.geometry[i])) if touch} for i, neigh in enumerate(important_data.Neighbours)]
   print(f"{map} neighbours data merged.")
 del gdf
+important_data["County"] = important_data["Administrative Region"]
+important_data.loc[important_data.County=="CORK CITY", "County"] = "CORK"
+important_data.loc[important_data.County.isin(["DUBLIN CITY", "DUN LAOGHAIRE/RATHDOWN", "FINGAL", "SOUTH DUBLIN"]), "County"] = "DUBLIN"
+important_data.loc[important_data.County=="GALWAY CITY", "County"] = "GALWAY"
+important_data.loc[important_data.County=="LIMERICK CITY", "County"] = "LIMERICK"
+important_data.loc[important_data.County.isin(["NORTH TIPPERARY", "SOUTH TIPPERARY"]), "County"] = "TIPPERARY"
+important_data.loc[important_data.County=="WATERFORD CITY", "County"] = "WATERFORD"
+print("County data added.")
 
 
 # Obtaining 2023 constituency data
 important_data["Constituency"] = ""
 
 # Whole counties
-important_data.loc[important_data.County.isin(["CAVAN", "MONAGHAN"]), "Constituency"] = "CAVAN-MONAGHAN"
-important_data.loc[important_data.County=="CLARE", "Constituency"] = "CLARE"
-important_data.loc[important_data.County=="KERRY", "Constituency"] = "KERRY"
-important_data.loc[important_data.County=="LAOIS", "Constituency"] = "LAOIS"
-important_data.loc[important_data.County.isin(["LONGFORD", "WESTMEATH"]), "Constituency"] = "LONGFORD-WESTMEATH"
-important_data.loc[important_data.County=="MAYO", "Constituency"] = "MAYO"
-important_data.loc[important_data.County=="OFFALY", "Constituency"] = "OFFALY"
-important_data.loc[important_data.County.isin(["WATERFORD", "WATERFORD CITY"]), "Constituency"] = "WATERFORD"
+important_data.loc[important_data["Administrative Region"].isin(["CAVAN", "MONAGHAN"]), "Constituency"] = "CAVAN-MONAGHAN"
+important_data.loc[important_data["Administrative Region"]=="CLARE", "Constituency"] = "CLARE"
+important_data.loc[important_data["Administrative Region"]=="KERRY", "Constituency"] = "KERRY"
+important_data.loc[important_data["Administrative Region"]=="LAOIS", "Constituency"] = "LAOIS"
+important_data.loc[important_data["Administrative Region"].isin(["LONGFORD", "WESTMEATH"]), "Constituency"] = "LONGFORD-WESTMEATH"
+important_data.loc[important_data["Administrative Region"]=="MAYO", "Constituency"] = "MAYO"
+important_data.loc[important_data["Administrative Region"]=="OFFALY", "Constituency"] = "OFFALY"
+important_data.loc[important_data["Administrative Region"].isin(["WATERFORD", "WATERFORD CITY"]), "Constituency"] = "WATERFORD"
 print("Whole-county constituency data added.")
 
 # Manual entries
-important_data.loc[(important_data.County=="CORK") & ((important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="CORK") & ((important_data.Name.isin([
   "COBH RURAL",
   "KNOCKRAHA",
   "AGHERN",
@@ -160,7 +168,7 @@ important_data.loc[(important_data.County=="CORK") & ((important_data.Name.isin(
   "2ae19629-1f3d-13a3-e055-000000000001", # Carrig
   "2ae19629-219e-13a3-e055-000000000001" # Killeagh
   ]))), "Constituency"] = "CORK EAST"
-important_data.loc[((important_data.County=="CORK CITY") & (important_data.Name.isin([
+important_data.loc[((important_data["Administrative Region"]=="CORK CITY") & (important_data.Name.isin([
   "BLACKPOOL A",
   "BLACKPOOL B",
   "CHURCHFIELD",
@@ -201,7 +209,7 @@ important_data.loc[((important_data.County=="CORK CITY") & (important_data.Name.
   "RATHCOONEY",
   "RIVERSTOWN",
   "WHITECHURCH"
-  ]))) | ((important_data.County=="CORK") & ((important_data.Name.isin([
+  ]))) | ((important_data["Administrative Region"]=="CORK") & ((important_data.Name.isin([
   "BALLYNAGLOGH",
   "BLACKPOOL",
   "CARRIGNAVAR",
@@ -230,7 +238,7 @@ important_data.loc[((important_data.County=="CORK CITY") & (important_data.Name.
   "2ae19629-21b8-13a3-e055-000000000001", # Killeagh
   "2ae19629-1f47-13a3-e055-000000000001" # Carrig
   ])))), "Constituency"] = "CORK NORTH-CENTRAL"
-important_data.loc[((important_data.County=="CORK") & ((important_data.Name.isin([
+important_data.loc[((important_data["Administrative Region"]=="CORK") & ((important_data.Name.isin([
   "BALLYGROMAN",
   "BALLYMURPHY",
   "BENGOUR",
@@ -339,8 +347,8 @@ important_data.loc[((important_data.County=="CORK") & ((important_data.Name.isin
   "RATHCOOL",
   "SKAGH",
   "MACROOM URBAN"
-  ])) | (important_data.GUID=="2ae19629-1f7a-13a3-e055-000000000001"))) | ((important_data.County=="CORK CITY") & (important_data.Name=="OVENS")), "Constituency"] = "CORK NORTH-WEST"
-important_data.loc[((important_data.County=="CORK CITY") & ~(important_data.Constituency.isin(["CORK NORTH-CENTRAL", "CORK NORTH-WEST"]))) | ((important_data.County=="CORK") & (important_data.Name.isin([
+  ])) | (important_data.GUID=="2ae19629-1f7a-13a3-e055-000000000001"))) | ((important_data["Administrative Region"]=="CORK CITY") & (important_data.Name=="OVENS")), "Constituency"] = "CORK NORTH-WEST"
+important_data.loc[((important_data["Administrative Region"]=="CORK CITY") & ~(important_data.Constituency.isin(["CORK NORTH-CENTRAL", "CORK NORTH-WEST"]))) | ((important_data["Administrative Region"]=="CORK") & (important_data.Name.isin([
   "CARRIGALINE",
   "MONKSTOWN URBAN",
   "BALLYGARVAN",
@@ -352,7 +360,7 @@ important_data.loc[((important_data.County=="CORK CITY") & ~(important_data.Cons
   "LISCLEARY",
   "TEMPLEBREEDY"
   ]))), "Constituency"] = "CORK SOUTH-CENTRAL"
-important_data.loc[((important_data.County=="DUBLIN CITY") & (important_data.Name.isin([
+important_data.loc[((important_data["Administrative Region"]=="DUBLIN CITY") & (important_data.Name.isin([
   "AYRFIELD",
   "BEAUMONT C",
   "BEAUMONT D",
@@ -387,13 +395,13 @@ important_data.loc[((important_data.County=="DUBLIN CITY") & (important_data.Nam
   "RAHENY-FOXFIELD",
   "RAHENY-GREENDALE",
   "RAHENY-St. ASSAM"
-  ]))) | ((important_data.County=="FINGAL") & (important_data.Name.isin([
+  ]))) | ((important_data["Administrative Region"]=="FINGAL") & (important_data.Name.isin([
   "BALDOYLE",
   "BALGRIFFIN",
   "HOWTH",
   "SUTTON"
   ]))), "Constituency"] = "DUBLIN BAY NORTH"
-important_data.loc[(important_data.County=="DUBLIN CITY") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="DUBLIN CITY") & (important_data.Name.isin([
   "MANSION HOUSE A",
   "MANSION HOUSE B",
   "PEMBROKE EAST A",
@@ -426,7 +434,7 @@ important_data.loc[(important_data.County=="DUBLIN CITY") & (important_data.Name
   "WOOD QUAY A",
   "WOOD QUAY B"
   ])), "Constituency"] = "DUBLIN BAY SOUTH"
-important_data.loc[(important_data.County=="DUBLIN CITY") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="DUBLIN CITY") & (important_data.Name.isin([
   "ARRAN QUAY A",
   "ARRAN QUAY B",
   "ARRAN QUAY C",
@@ -459,7 +467,7 @@ important_data.loc[(important_data.County=="DUBLIN CITY") & (important_data.Name
   "ROTUNDA A",
   "ROTUNDA B"
   ])), "Constituency"] = "DUBLIN CENTRAL"
-important_data.loc[(important_data.County=="FINGAL") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="FINGAL") & (important_data.Name.isin([
   "DONABATE",
   "KINSALEY",
   "MALAHIDE EAST",
@@ -472,7 +480,7 @@ important_data.loc[(important_data.County=="FINGAL") & (important_data.Name.isin
   "SWORDS-SEATOWN",
   "SWORDS VILLAGE"
   ])), "Constituency"] = "DUBLIN FINGAL EAST"
-important_data.loc[(important_data.County=="FINGAL") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="FINGAL") & (important_data.Name.isin([
   "AIRPORT",
   "BALBRIGGAN RURAL",
   "BALBRIGGAN URBAN",
@@ -489,7 +497,7 @@ important_data.loc[(important_data.County=="FINGAL") & (important_data.Name.isin
   "SKERRIES",
   "TURNAPIN"
   ])), "Constituency"] = "DUBLIN FINGAL WEST"
-important_data.loc[(important_data.County=="SOUTH DUBLIN") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="SOUTH DUBLIN") & (important_data.Name.isin([
   "CLONDALKIN-CAPPAGHMORE",
   "CLONDALKIN-DUNAWLEY",
   "CLONDALKIN-MONASTERY",
@@ -506,7 +514,7 @@ important_data.loc[(important_data.County=="SOUTH DUBLIN") & (important_data.Nam
   "SAGGART",
   "TALLAGHT-FETTERCAIRN"
   ])), "Constituency"] = "DUBLIN MID-WEST"
-important_data.loc[(important_data.County=="DUBLIN CITY") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="DUBLIN CITY") & (important_data.Name.isin([
   "BALLYGALL A",
   "BALLYGALL B",
   "BALLYGALL C",
@@ -533,7 +541,7 @@ important_data.loc[(important_data.County=="DUBLIN CITY") & (important_data.Name
   "WHITEHALL C",
   "WHITEHALL D"
   ])), "Constituency"] = "DUBLIN NORTH-WEST"
-important_data.loc[(important_data.County=="DUN LAOGHAIRE/RATHDOWN") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="DUN LAOGHAIRE/RATHDOWN") & (important_data.Name.isin([
   "BALLINTEER-BROADFORD",
   "BALLINTEER-LUDFORD",
   "BALLINTEER-MARLEY",
@@ -565,7 +573,7 @@ important_data.loc[(important_data.County=="DUN LAOGHAIRE/RATHDOWN") & (importan
   "STILLORGAN-MOUNT MERRION",
   "TIBRADDEN"
   ])), "Constituency"] = "DUBLIN RATHDOWN"
-important_data.loc[(important_data.County=="DUBLIN CITY") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="DUBLIN CITY") & (important_data.Name.isin([
   "CARNA",
   "CHAPELIZOD",
   "CHERRY ORCHARD A",
@@ -606,7 +614,7 @@ important_data.loc[(important_data.County=="DUBLIN CITY") & (important_data.Name
   "WALKINSTOWN C"
   # EC report & government map seemingly has all of Phoenix Park ED in Dublin West Constituency?
   ])), "Constituency"] = "DUBLIN SOUTH-CENTRAL"
-important_data.loc[(important_data.County=="SOUTH DUBLIN") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="SOUTH DUBLIN") & (important_data.Name.isin([
   "BALLINASCORNEY",
   "BALLYBODEN",
   "BOHERNABREENA",
@@ -642,7 +650,7 @@ important_data.loc[(important_data.County=="SOUTH DUBLIN") & (important_data.Nam
   "TERENURE-GREENTREES",
   "TERENURE-St. JAMES"
   ])), "Constituency"] = "DUBLIN SOUTH-WEST"
-important_data.loc[((important_data.County=="FINGAL") & (important_data.Name.isin([
+important_data.loc[((important_data["Administrative Region"]=="FINGAL") & (important_data.Name.isin([
   "BLANCHARDSTOWN-ABBOTSTOWN",
   "BLANCHARDSTOWN-BLAKESTOWN",
   "BLANCHARDSTOWN-COOLMINE",
@@ -655,12 +663,12 @@ important_data.loc[((important_data.County=="FINGAL") & (important_data.Name.isi
   "CASTLEKNOCK-PARK",
   "LUCAN NORTH",
   "THE WARD"
-  ]))) | ((important_data.County=="DUBLIN CITY") & (important_data.Name.isin([
+  ]))) | ((important_data["Administrative Region"]=="DUBLIN CITY") & (important_data.Name.isin([
   "ASHTOWN A",
   "ASHTOWN B",
   "PHOENIX PARK" # EC report & government map seemingly has all of Phoenix Park ED in Dublin West Constituency?
   ]))), "Constituency"] = "DUBLIN WEST"
-important_data.loc[(important_data.County=="DUN LAOGHAIRE/RATHDOWN") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="DUN LAOGHAIRE/RATHDOWN") & (important_data.Name.isin([
   "BALLYBRACK",
   "BLACKROCK-BOOTERSTOWN",
   "BLACKROCK-CARYSFORT",
@@ -701,7 +709,7 @@ important_data.loc[(important_data.County=="DUN LAOGHAIRE/RATHDOWN") & (importan
   "SHANKILL-SHANGANAGH",
   "STILLORGAN-PRIORY"
   ])), "Constituency"] = "DÚN LAOGHAIRE"
-important_data.loc[(important_data.County=="GALWAY") & ((important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="GALWAY") & ((important_data.Name.isin([
   "ABBEYGORMACAN",
   "AUGHRIM",
   "BALLYMACWARD",
@@ -851,7 +859,7 @@ important_data.loc[(important_data.County=="GALWAY") & ((important_data.Name.isi
   "2ae19629-208b-13a3-e055-000000000001", # Ballynakill
   "2ae19629-2059-13a3-e055-000000000001" # Annaghdown
   ]))), "Constituency"] = "GALWAY EAST"
-important_data.loc[(important_data.County=="GALWAY CITY") | ((important_data.County=="GALWAY") & ((important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="GALWAY CITY") | ((important_data["Administrative Region"]=="GALWAY") & ((important_data.Name.isin([
   "OWENGOWLA",
   "KNOCKBOY",
   "ILLION",
@@ -910,7 +918,7 @@ important_data.loc[(important_data.County=="GALWAY CITY") | ((important_data.Cou
   "2ae19629-208c-13a3-e055-000000000001", # Ballynakill
   "2ae19629-204f-13a3-e055-000000000001" # Annaghdown
   ])))), "Constituency"] = "GALWAY WEST" # TODO FIND CUSHKILLARY, SILERNA/SILLERNA
-important_data.loc[(important_data.County=="KILDARE") & ((important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="KILDARE") & ((important_data.Name.isin([
   "BALRAHEEN",
   "CELBRIDGE",
   # multiple Cloncurries in Kildare - added via GUID below
@@ -939,7 +947,7 @@ important_data.loc[(important_data.County=="KILDARE") & ((important_data.Name.is
   "TIMAHOE NORTH",
   "NAAS URBAN"
   ])) | (important_data.GUID=="2ae19629-229a-13a3-e055-000000000001")), "Constituency"] = "KILDARE NORTH"
-important_data.loc[(important_data.County.isin(["LIMERICK", "LIMERICK CITY"])) & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"].isin(["LIMERICK", "LIMERICK CITY"])) & (important_data.Name.isin([
   "ABBEY A",
   "ABBEY B",
   "ABBEY C",
@@ -991,8 +999,8 @@ important_data.loc[(important_data.County.isin(["LIMERICK", "LIMERICK CITY"])) &
   "LIMERICK SOUTH RURAL",
   "ROXBOROUGH"
   ])), "Constituency"] = "LIMERICK CITY"
-important_data.loc[(important_data.County=="LOUTH") | ((important_data.County=="MEATH") & (important_data.Name=="St. MARY'S")), "Constituency"] = "LOUTH" # St. Mary's (part) listed in County Louth in CSO data, St. Mary's also seemingly in actual Louth constituency but not mentioned in the Act?
-important_data.loc[(important_data.County=="MEATH") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"]=="LOUTH") | ((important_data["Administrative Region"]=="MEATH") & (important_data.Name=="St. MARY'S")), "Constituency"] = "LOUTH" # St. Mary's (part) listed in County Louth in CSO data, St. Mary's also seemingly in actual Louth constituency but not mentioned in the Act?
+important_data.loc[(important_data["Administrative Region"]=="MEATH") & (important_data.Name.isin([
   "DRUMCONDRA",
   "GRANGEGEETH",
   "KILLARY",
@@ -1037,7 +1045,7 @@ important_data.loc[(important_data.County=="MEATH") & (important_data.Name.isin(
   "TARA",
   "CEANANNAS MÓR URBAN" # typo in Act
   ])), "Constituency"] = "MEATH EAST"
-important_data.loc[(important_data.County.isin(["SLIGO", "LEITRIM"])) | ((important_data.County=="DONEGAL") & (important_data.Name.isin([
+important_data.loc[(important_data["Administrative Region"].isin(["SLIGO", "LEITRIM"])) | ((important_data["Administrative Region"]=="DONEGAL") & (important_data.Name.isin([
   "BALLINTRA",
   "BALLYSHANNON RURAL",
   "BALLYSHANNON URBAN",
@@ -1048,7 +1056,7 @@ important_data.loc[(important_data.County.isin(["SLIGO", "LEITRIM"])) | ((import
   # Ballintra EDs already included
   "BUNDORAN URBAN"
   ]))), "Constituency"] = "SLIGO-LEITRIM"
-important_data.loc[((important_data.County=="NORTH TIPPERARY") & (important_data.Name.isin([
+important_data.loc[((important_data["Administrative Region"]=="NORTH TIPPERARY") & (important_data.Name.isin([
   "AGLISHCLOGHANE",
   "BALLINGARRY",
   "BALLYLUSKY",
@@ -1128,7 +1136,7 @@ important_data.loc[((important_data.County=="NORTH TIPPERARY") & (important_data
   "NENAGH WEST URBAN",
   "TEMPLEMORE",
   "THURLES URBAN"
-  ]))) | ((important_data.County=="SOUTH TIPPERARY") & (important_data.Name.isin([
+  ]))) | ((important_data["Administrative Region"]=="SOUTH TIPPERARY") & (important_data.Name.isin([
   "CLOGHER",
   "CLONOULTY EAST",
   "CLONOULTY WEST",
@@ -1140,7 +1148,7 @@ important_data.loc[((important_data.County=="NORTH TIPPERARY") & (important_data
   "CURRAHEEN",
   "DONOHILL",
   "GLENGAR"
-  ]))) | ((important_data.County=="KILKENNY") & (important_data.Name.isin([
+  ]))) | ((important_data["Administrative Region"]=="KILKENNY") & (important_data.Name.isin([
   "BALLYBEAGH",
   "FRESHFORD",
   "RATHEALY",
@@ -1155,7 +1163,7 @@ important_data.loc[((important_data.County=="NORTH TIPPERARY") & (important_data
   "TUBBRIDBRITTAIN",
   "URLINGFORD"
   ]))), "Constituency"] = "TIPPERARY NORTH" # need to specify North/South Tipperary county - mixture of North/South Tipperary counties in Tipperary South/North constituencies, EDs with same name in North/South Tipperary counties
-important_data.loc[((important_data.County=="WEXFORD") & (important_data.Name.isin([
+important_data.loc[((important_data["Administrative Region"]=="WEXFORD") & (important_data.Name.isin([
   "BALLINDAGGAN",
   "BALLYCARNEY",
   "BALLYMORE",
@@ -1197,7 +1205,7 @@ important_data.loc[((important_data.County=="WEXFORD") & (important_data.Name.is
   "ROSSMINOGE",
   "WELLS",
   "WINGFIELD"
-  ]))) | ((important_data.County=="WICKLOW") & ((important_data.Name.isin([
+  ]))) | ((important_data["Administrative Region"]=="WICKLOW") & ((important_data.Name.isin([
   "ARKLOW RURAL",
   "AUGHRIM",
   "BALLINACLASH",
@@ -1233,19 +1241,19 @@ important_data.loc[((important_data.County=="WEXFORD") & (important_data.Name.is
 print("Manual-entry constituency data added.")
 
 # Complements
-important_data.loc[(important_data.County=="CARLOW") | ((important_data.County=="KILKENNY") & (important_data.Constituency!="TIPPERARY NORTH")), "Constituency"] = "CARLOW-KILKENNY"
-important_data.loc[(important_data.County=="CORK") & ~(important_data.Constituency.isin(["CORK EAST", "CORK NORTH-CENTRAL", "CORK NORTH-WEST", "CORK SOUTH-CENTRAL"])), "Constituency"] = "CORK SOUTH-WEST"
-important_data.loc[(important_data.County=="DONEGAL") & (important_data.Constituency!="SLIGO-LEITRIM"), "Constituency"] = "DONEGAL"
-important_data.loc[(important_data.County=="KILDARE") & (important_data.Constituency!="KILDARE NORTH"), "Constituency"] = "KILDARE SOUTH"
-important_data.loc[(important_data.County.isin(["LIMERICK", "LIMERICK CITY"])) & (important_data.Constituency!="LIMERICK CITY"), "Constituency"] = "LIMERICK COUNTY"
-important_data.loc[(important_data.County=="MEATH") & ~(important_data.Constituency.isin(["LOUTH", "MEATH EAST"])), "Constituency"] = "MEATH WEST"
-important_data.loc[(important_data.County=="ROSCOMMON") | ((important_data.County=="GALWAY") & ~(important_data.Constituency.isin(["GALWAY EAST", "GALWAY WEST"]))), "Constituency"] = "ROSCOMMON-GALWAY"
-important_data.loc[(important_data.County.isin(["NORTH TIPPERARY", "SOUTH TIPPERARY"])) & (important_data.Constituency!="TIPPERARY NORTH"), "Constituency"] = "TIPPERARY SOUTH"
-important_data.loc[(important_data.County=="WEXFORD") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WEXFORD"
-important_data.loc[(important_data.County=="WICKLOW") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WICKLOW"
+important_data.loc[(important_data["Administrative Region"]=="CARLOW") | ((important_data["Administrative Region"]=="KILKENNY") & (important_data.Constituency!="TIPPERARY NORTH")), "Constituency"] = "CARLOW-KILKENNY"
+important_data.loc[(important_data["Administrative Region"]=="CORK") & ~(important_data.Constituency.isin(["CORK EAST", "CORK NORTH-CENTRAL", "CORK NORTH-WEST", "CORK SOUTH-CENTRAL"])), "Constituency"] = "CORK SOUTH-WEST"
+important_data.loc[(important_data["Administrative Region"]=="DONEGAL") & (important_data.Constituency!="SLIGO-LEITRIM"), "Constituency"] = "DONEGAL"
+important_data.loc[(important_data["Administrative Region"]=="KILDARE") & (important_data.Constituency!="KILDARE NORTH"), "Constituency"] = "KILDARE SOUTH"
+important_data.loc[(important_data["Administrative Region"].isin(["LIMERICK", "LIMERICK CITY"])) & (important_data.Constituency!="LIMERICK CITY"), "Constituency"] = "LIMERICK COUNTY"
+important_data.loc[(important_data["Administrative Region"]=="MEATH") & ~(important_data.Constituency.isin(["LOUTH", "MEATH EAST"])), "Constituency"] = "MEATH WEST"
+important_data.loc[(important_data["Administrative Region"]=="ROSCOMMON") | ((important_data["Administrative Region"]=="GALWAY") & ~(important_data.Constituency.isin(["GALWAY EAST", "GALWAY WEST"]))), "Constituency"] = "ROSCOMMON-GALWAY"
+important_data.loc[(important_data["Administrative Region"].isin(["NORTH TIPPERARY", "SOUTH TIPPERARY"])) & (important_data.Constituency!="TIPPERARY NORTH"), "Constituency"] = "TIPPERARY SOUTH"
+important_data.loc[(important_data["Administrative Region"]=="WEXFORD") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WEXFORD"
+important_data.loc[(important_data["Administrative Region"]=="WICKLOW") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WICKLOW"
 print("Complement constituency data added.")
 
 
 # Saving to .csv
-important_data.to_csv(os.path.join(data_dir, "ED_data.csv"), columns=["GUID", "Name", "County", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
+important_data.to_csv(os.path.join(data_dir, "ED_data.csv"), columns=["GUID", "Name", "County", "Administrative Region", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
 print("Data saved to ED_data.csv.")
