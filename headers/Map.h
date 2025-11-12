@@ -11,18 +11,23 @@ class Map
     /* INPUTS */
     // Number of seats per constituency.
     const vector<int> seats_;
-    // Population and neighbours of each ED.
-    // Integers represent positions in the given population/neighbour lists.
+    // Population of each ED.
     const vector<int> ED_pop_;
+    // Neighbours of each ED.
+    // Integers represent index in the given population/neighbour/county lists.
     const vector<vector<int>> ED_nei_;
+    // Counties of each ED.
+    // Integers represent (arbitrary) county labels.
+    const vector<int> ED_cou_;
 
     /* OUTPUTS */
     // Constituency assigned to each electoral division, i.e. the configuration of our map.
+    // Integers represent index in the given list of seats per constituency.
     vector<int> ED_q_;
 
     /* FIXED PARAMETERS*/
-    // Total population, number of EDs, and number of borders between EDs.
-    int total_pop_, EDs_, borders_;
+    // Total population, number of EDs, number of borders between EDs, and number of counties.
+    int total_pop_, EDs_, borders_, counties_;
     // Number of constituencies, number of seats, and average population per seat.
     int Q_, total_seats_;
     double av_pop_;
@@ -56,7 +61,7 @@ class Map
     void site_update_(const int& x, const int& prop, const int& cqg_idx, vector<vector<int>>& cngs, vector<int>& pqg_idxs, vector<vector<int>>& pngs);
   public:
     // Class constructor.
-    Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours);
+    Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties);
 
     // Return private variables.
     int seat(const int& q) const { return seats_[q]; }

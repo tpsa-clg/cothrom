@@ -161,24 +161,18 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
   q_group_[prop].push_back(pxg);
 }
 
-Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_q_(populations.size()), total_pop_(0), EDs_(populations.size()), borders_(0), Q_(seats.size()), total_seats_(0), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
+Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(populations.size()), total_pop_(std::reduce(ED_pop_.begin(), ED_pop_.end())), EDs_(populations.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats.size()), total_seats_(std::reduce(seats_.begin(), seats_.end())), av_pop_(double(total_pop_) / double(total_seats_)), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
 {
   // seats: number of seats per constituency
-  // populations: list of ED populations
-  // neighbours: list of ED neighbours
+  // populations/neighbours/counties: list of ED populations/neighbours/counties
 
-  // randomly assign ED constituencies, get total population and number of borders
+  // randomly assign ED constituencies, get number of borders
   for (int x = 0; x < EDs_; x ++)
   {
     ED_q_[x] = int_dist_(r);
-    total_pop_ += ED_pop_[x];
     borders_ += ED_nei_[x].size();
   }
   borders_ /= 2;
-
-  // get total number of seats and average population per seat
-  for (int q = 0; q < Q_; q ++) total_seats_ += seats_[q];
-  av_pop_ = double(total_pop_) / double(total_seats_);
 
   // get constituency populations and connected subsets
   config_update_();

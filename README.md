@@ -3,7 +3,6 @@ Current state of affairs
     - parallelise `MCMC_SA.cpp` over parameter sets instead of calculations within MCMC updates?
     - plot some Pareto fronts/phase diagrams in `plot.py` from multiple sets of results of the C++ code
 - extend `plot.py` code
-    - plot autocorrelation times
     - plot specific heat capacities
         - this needs proper errorbar considerations, probably by thinning data in the C++ code until it's independent and then calculating standard error of the variance (needs a lot of samples for high autocorrelation)
 - contiguity term extremely inefficient (breadth-first search instead of potential matrix multiplication?)
