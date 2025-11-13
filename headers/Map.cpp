@@ -82,8 +82,10 @@ valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int
   int deltaHD_curr = 0;
   for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == curr) deltaHD_curr ++;
 
+  // TODO get change in county boundary Hamiltonian
+
   // return the changes to the population, contiguity, and compactness Hamiltonians
-  return valarray<double>{ (abs(q_pop_[curr] - ED_pop_[x]) - abs(q_pop_[curr]))/(seats_[curr] * av_pop_), fabs(q_group_[curr].size() + cngs.size() - 2.) - q_group_[curr].size() + 1, double(deltaHD_curr) };
+  return valarray<double>{ (abs(q_pop_[curr] - ED_pop_[x]) - abs(q_pop_[curr]))/(seats_[curr] * av_pop_), fabs(q_group_[curr].size() + cngs.size() - 2.) - q_group_[curr].size() + 1, double(deltaHD_curr), 0. };
 }
 valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const
 {
@@ -111,8 +113,10 @@ valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& p
   int deltaHD_prop = 0;
   for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == prop) deltaHD_prop --;
 
+  // TODO get change in county boundary Hamiltonian
+
   // return the changes to the population, contiguity, and compactness Hamiltonians
-  return valarray<double>{ double(abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/(seats_[prop] * av_pop_), q_group_[prop].size() - pngs.size() - fabs(q_group_[prop].size() - 1.), double(deltaHD_prop) };
+  return valarray<double>{ double(abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/(seats_[prop] * av_pop_), q_group_[prop].size() - pngs.size() - fabs(q_group_[prop].size() - 1.), double(deltaHD_prop), 0. };
 }
 
 void Map::config_update_()
@@ -130,6 +134,8 @@ void Map::config_update_()
   // find connected subsets for each constituency
   #pragma omp parallel for
   for (int q = 0; q < Q_; q ++) q_group_[q] = connect_(disconnected[q]);
+
+  // TODO find tally of EDs in each county for each constituency
 }
 void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector<vector<int>>& cngs, vector<int>& pqg_idxs, vector<vector<int>>& pngs)
 {
@@ -159,6 +165,8 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
   }
   // add them back in but as one connected subset
   q_group_[prop].push_back(pxg);
+
+  // TODO update county tallies: q_cou_[curr][ED_cou_[x]] --, q_cou_[prop][ED_cou_[x]] ++
 }
 
 Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(populations.size()), total_pop_(std::reduce(ED_pop_.begin(), ED_pop_.end())), EDs_(populations.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats.size()), total_seats_(std::reduce(seats_.begin(), seats_.end())), av_pop_(double(total_pop_) / double(total_seats_)), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
@@ -173,6 +181,8 @@ Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<
     borders_ += ED_nei_[x].size();
   }
   borders_ /= 2;
+
+  // TODO get number of EDs in each county for each constituency using vector<vector<int>> q_cou_(Q_, vector<int>(counties_))
 
   // get constituency populations and connected subsets
   config_update_();
@@ -199,8 +209,9 @@ valarray<double> Map::H() const
   int HD = 0;
   #pragma omp parallel for reduction(+:HD)
   for (int x = 0; x < EDs_; x ++) for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[x] != ED_q_[ED_nei_[x][i]]) HD ++;
+  // TODO get county boundary Hamiltonian
   // return population, contigutiy, and compactness Hamiltonians
-  return valarray<double>{ HP, HC, double(HD/2) };
+  return valarray<double>{ HP, HC, double(HD/2), 0. };
 }
 
 int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)

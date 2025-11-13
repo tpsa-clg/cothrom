@@ -41,6 +41,7 @@ class Map
     // Connected subsets of each constituency.
     // A constituency is contiguous when it has one connected subset.
     vector<vector<vector<int>>> q_group_;
+    // TODO include a tally of county EDs for each constituency, i.e. vector<vector<int>> q_cou_
 
     // Return a vector of (geographically) connected subsets from a vector of EDs.
     // Note: input vector will be empty at return.
@@ -71,6 +72,7 @@ class Map
     int total_pop() const { return total_pop_; }
     int EDs() const { return EDs_; }
     int borders() const { return borders_; }
+    int counties() const { return counties_; }
     int Q() const { return Q_; }
     int total_seats() const { return total_seats_; }
     double av_pop() const { return av_pop_; }
