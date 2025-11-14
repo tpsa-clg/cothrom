@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     if (map.nei(x).size() > max_nei) max_nei = map.nei(x).size();
   }
   // choosing the starting temperature - defined as temperature at which the highest energy increase is accepted with 99% probability
-  double T = -(valarray<double>{ 2.*max_pop/map.av_pop(), 1.+max_nei/2., double(max_nei), 2. }*J_Z).sum()/log(.99);
+  double T = -(valarray<double>{ 2.*max_pop/map.av_pop(), 1.+max_nei/2., double(max_nei), 1. }*J_Z).sum()/log(.99);
   vector<double> Ts(0);
   // temperature cooling factor
   double cool = .9;

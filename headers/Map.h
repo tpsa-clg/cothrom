@@ -41,7 +41,8 @@ class Map
     // Connected subsets of each constituency.
     // A constituency is contiguous when it has one connected subset.
     vector<vector<vector<int>>> q_group_;
-    // TODO include a tally of county EDs for each constituency, i.e. vector<vector<int>> q_cou_
+    // Tally of number of EDs in each county for each constituency.
+    vector<vector<int>> q_cou_;
 
     // Return a vector of (geographically) connected subsets from a vector of EDs.
     // Note: input vector will be empty at return.
@@ -53,7 +54,7 @@ class Map
     valarray<double> deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const;
     valarray<double> deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const;
 
-    // Update constituency populations & connected subsets.
+    // Update constituency populations, connected subsets, and county tallies.
     // Only used at construction and manual configuration changes.
     void config_update_();
 

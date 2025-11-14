@@ -3,16 +3,17 @@ Current state of affairs
     - parallelise `MCMC_SA.cpp` over parameter sets instead of calculations within MCMC updates?
     - plot some Pareto fronts/phase diagrams in `plot.py` from multiple sets of results of the C++ code
 - extend `plot.py` code
+    - plot acceptance rates
     - plot specific heat capacities
         - this needs proper errorbar considerations, probably by thinning data in the C++ code until it's independent and then calculating standard error of the variance (needs a lot of samples for high autocorrelation)
 - contiguity term extremely inefficient (breadth-first search instead of potential matrix multiplication?)
-- no testing of alternative compactness terms e.g. something with area and perimeter, convex hull, etc. rather than number of neighbours
+    - some comments on GitHub ([#6](https://github.com/campioru/Electoral_Redistricting/issues/6)) about ensuring contiguity at all stages
+- no testing of alternative compactness terms e.g. something with area and perimeter, convex hull, etc. rather than number of neighbours ([#5](https://github.com/campioru/Electoral_Redistricting/issues/5))
 - crazy idea: consider combining contiguity and compactness into one shape term (since they are quite strongly correlated anyway, i.e. reducing one generally reduces the other)
     - could be sort of piecewise i.e. H_C + max(H_D) when not contiguous, H_D when contiguous
     - would still need to check contiguity at each step but could skip a lot of compactness calculations in high-temperature phase
     - still need to give this some thought as this could result in poor compactness performance, since the algorithm would only start caring about compactness past the critical point
     - could always go back to the original idea of only suggesting changes that don't split constituencies, but would be pretty difficult to properly implement
-- no county border term
 - no temporal continuity term
 - remove redundant Hamiltonian calculations for certain maps
     - don't consider county boundaries for areas within counties or EU redistricting
@@ -50,3 +51,6 @@ OMP_SET_NUM_THREADS=num_threads
 ````
 
 `plot.py` - plots statistical physics observables (Hamiltonians, specific heat capacities, acceptance rates) from `MCMC_SA.cpp` output
+````
+python3 code/plot.py "Midland counties"
+````
