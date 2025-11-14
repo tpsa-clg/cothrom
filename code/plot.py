@@ -29,12 +29,15 @@ del config_data
 # Reading & plotting MCMC SA data (measurements vs temperature)
 MCMC_data = pd.read_csv(config_file, skiprows=5)
 MCMC_data["beta"] = 1. / MCMC_data["T"]
-subs = ["P", "C", "D", ""]
+subs = ["P", "C", "D", "B", ""]
 
 # TODO make this a function instead of repeating
 Hs = [rf"$H_{sub}$" for sub in subs[:-1]] + [r"$H$"]
 for sub, H in zip(subs, Hs):
-    plt.errorbar(MCMC_data.beta, MCMC_data[f"H{sub}"]/MCMC_data[f"H{sub}"][0], yerr=MCMC_data[f"H{sub}_err"]/MCMC_data[f"H{sub}"][0], label=H)
+    if [err for err in MCMC_data[f"H{sub}_err"] if err == err]:
+        plt.errorbar(MCMC_data.beta, MCMC_data[f"H{sub}"]/MCMC_data[f"H{sub}"][0], yerr=MCMC_data[f"H{sub}_err"]/MCMC_data[f"H{sub}"][0], label=H)
+    else:
+        plt.plot(MCMC_data.beta, MCMC_data.beta, MCMC_data[f"H{sub}"]/MCMC_data[f"H{sub}"][0], label=H)
 plt.xscale("log")
 plt.xlim(MCMC_data.beta.iloc[0], MCMC_data.beta.iloc[-1])
 plt.legend(loc="lower left")
@@ -43,7 +46,8 @@ plt.close()
 
 taus = [rf"$\tau_{sub}$" for sub in subs[:-1]] + [r"$\tau$"]
 for sub, tau in zip(subs, taus):
-    plt.errorbar(MCMC_data.beta, MCMC_data[f"H{sub}_tau"]/MCMC_data[f"H{sub}_tau"][0], yerr=MCMC_data[f"H{sub}_tau_err"]/MCMC_data[f"H{sub}_tau"][0], label=tau)
+    if [err for err in MCMC_data[f"H{sub}_tau_err"] if err == err]:
+        plt.errorbar(MCMC_data.beta, MCMC_data[f"H{sub}_tau"], yerr=MCMC_data[f"H{sub}_tau_err"], label=tau)
 plt.xscale("log")
 plt.yscale("log")
 plt.xlim(MCMC_data.beta.iloc[0], MCMC_data.beta.iloc[-1])

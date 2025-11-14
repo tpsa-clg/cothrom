@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
   std::ifstream pop_file(data_dir + "Population.txt");
   while (getline(pop_file, line)) populations.push_back(stoi(line));
   pop_file.close();
-  // red neighbours - multiple integers (neighbours) separated by spaces per line (ED)
+  // read neighbours - multiple integers (neighbours) separated by spaces per line (ED)
   vector<vector<int>> neighbours(0);
   std::ifstream nei_file(data_dir + "Neighbours.txt");
   while (getline(nei_file, line))
@@ -36,13 +36,18 @@ int main(int argc, char *argv[])
     neighbours.push_back(nei);
   }
   nei_file.close();
+  // read counties - one integer (county) per line (ED)
+  vector<int> counties(0);
+  std::ifstream cou_file(data_dir + "County.txt");
+  while (getline(cou_file, line)) counties.push_back(stoi(line));
+  cou_file.close();
 
   // seats per constituency - second command line argument
   std::stringstream ss(argv[2]);
   vector<int> seats(0);
   while (getline(ss, line, ',')) seats.push_back(stoi(line));
   // initialising map
-  Map map(seats, populations, neighbours);
+  Map map(seats, populations, neighbours, counties);
   // storing the initial map configuration
   vector<int> init = map.config();
   // coupling constants - third command line argument
@@ -54,7 +59,7 @@ int main(int argc, char *argv[])
   valarray<double> J(J_vec.data(), J_vec.size());
   // incorporating Hamiltonian normalisations into coupling constants
   // note: assumes constituency 0 has the smallest number of seats - can change this to find the smallest seat number but this works for now
-  valarray<double> Z = { double(map.total_seats()-map.seat(0)), double(map.EDs()), double(map.borders()) };
+  valarray<double> Z = { double(map.total_seats()-map.seat(0)), double(map.EDs()), double(map.borders()), double(map.Q()*map.counties()) };
   for (int q = 1; q < map.Q(); q ++) Z[0] += map.seat(q);
   valarray<double> J_Z = J/Z;
 
@@ -66,7 +71,7 @@ int main(int argc, char *argv[])
     if (map.nei(x).size() > max_nei) max_nei = map.nei(x).size();
   }
   // choosing the starting temperature - defined as temperature at which the highest energy increase is accepted with 99% probability
-  double T = -(valarray<double>{ 2.*max_pop/map.av_pop(), 1.+max_nei/2., double(max_nei) }*J_Z).sum()/log(.99);
+  double T = -(valarray<double>{ 2.*max_pop/map.av_pop(), 1.+max_nei/2., double(max_nei), 1. }*J_Z).sum()/log(.99);
   vector<double> Ts(0);
   // temperature cooling factor
   double cool = .9;
@@ -80,7 +85,7 @@ int main(int argc, char *argv[])
   int N_disc = stoi(line);
 
   // vectors for storing observables & errors & autocorrelation times at each temperature
-  vector<vector<double>> Hs(3, vector<double>(0)), H_errs(3, vector<double>(0)), H_taus(3, vector<double>(0)), H_tau_errs(3, vector<double>(0));
+  vector<vector<double>> Hs(J.size(), vector<double>(0)), H_errs(J.size(), vector<double>(0)), H_taus(J.size(), vector<double>(0)), H_tau_errs(J.size(), vector<double>(0));
   vector<double> H_sums(0), H_sum_errs(0), H_sum_taus(0), H_sum_tau_errs(0);
   vector<double> times(0);
   vector<double> accs(0), acc_errs(0), acc_taus(0), acc_tau_errs(0);
@@ -96,27 +101,27 @@ int main(int argc, char *argv[])
     std::cout << Ts.size() << " " << T << "\n";
 
     // overall Hamiltonian coefficients (coupling + normalisation + temperature) and Hamiltonian tally
-    valarray<double> J_ZT = J_Z / T, H(3);
+    valarray<double> J_ZT = J_Z / T, H(J.size());
     // thermalising/equilibrising
     for (int n = 0; n < N_disc; n ++) map.GS_Sweep(H, J_ZT);
 
     // getting Hamiltonians at start of measured iterations
     H = map.H();
     // Markov chains for Hamiltonians and acceptance rates
-    vector<vector<double>> H_chain(3, vector<double>(N));
+    vector<vector<double>> H_chain(J.size(), vector<double>(N));
     vector<double> H_sum_chain(N), acc_chain(N);
     // getting acceptance rates and Hamiltonians for measured iterations
     for (int n = 0; n < N; n ++)
     {
       acc_chain[n] = map.GS_Sweep(H, J_ZT);
-      for (int i = 0; i < 3; i ++) H_chain[i][n] = H[i];
+      for (int i = 0; i < J.size(); i ++) H_chain[i][n] = H[i];
       H_sum_chain[n] = (J_Z*H).sum();
     }
 
     // stats stuff for Hamiltonians - averages, errors, and autocorrelations
     // TODO probably use a function for this...
     double tau, deltatau;
-    for (int i = 0; i < 3; i ++)
+    for (int i = 0; i < J.size(); i ++)
     {
       Hs[i].push_back(mean(H_chain[i]));
       autocorr(H_chain[i], Hs[i].back(), tau, deltatau);
@@ -168,11 +173,11 @@ int main(int argc, char *argv[])
   for (int x = 0; x < map.EDs(); x ++) file << "," << final[x];
   // all data vs temperature
   // TODO loop over column titles instead of hardcoding
-  file << "\nT,HP,HP_err,HP_tau,HP_tau_err,HC,HC_err,HC_tau,HC_tau_err,HD,HD_err,HD_tau,HD_tau_err,H,H_err,H_tau,H_tau_err,acc,acc_err,acc_tau,acc_tau_err,time\n";
+  file << "\nT,HP,HP_err,HP_tau,HP_tau_err,HC,HC_err,HC_tau,HC_tau_err,HD,HD_err,HD_tau,HD_tau_err,HB,HB_err,HB_tau,HB_tau_err,H,H_err,H_tau,H_tau_err,acc,acc_err,acc_tau,acc_tau_err,time\n";
   for (int t = 0; t < Ts.size(); t ++)
   {
     file << Ts[t] << ",";
-    for (int i = 0; i < 3; i ++) file << Hs[i][t] << "," << H_errs[i][t] << "," << H_taus[i][t] << "," << H_tau_errs[i][t] << ",";
+    for (int i = 0; i < J.size(); i ++) file << Hs[i][t] << "," << H_errs[i][t] << "," << H_taus[i][t] << "," << H_tau_errs[i][t] << ",";
     file << H_sums[t] << "," << H_sum_errs[t] << "," << H_sum_taus[t] << "," << H_sum_tau_errs[t] << ",";
     file << accs[t] << "," << acc_errs[t] << "," << acc_taus[t] << "," << acc_tau_errs[t] << ",";
     file << times[t] << "\n";

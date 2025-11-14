@@ -3,22 +3,22 @@ Current state of affairs
     - parallelise `MCMC_SA.cpp` over parameter sets instead of calculations within MCMC updates?
     - plot some Pareto fronts/phase diagrams in `plot.py` from multiple sets of results of the C++ code
 - extend `plot.py` code
-    - plot autocorrelation times
+    - plot acceptance rates
     - plot specific heat capacities
         - this needs proper errorbar considerations, probably by thinning data in the C++ code until it's independent and then calculating standard error of the variance (needs a lot of samples for high autocorrelation)
 - contiguity term extremely inefficient (breadth-first search instead of potential matrix multiplication?)
-- no testing of alternative compactness terms e.g. something with area and perimeter, convex hull, etc. rather than number of neighbours
+    - some comments on GitHub ([#6](https://github.com/campioru/Electoral_Redistricting/issues/6)) about ensuring contiguity at all stages
+- no testing of alternative compactness terms e.g. something with area and perimeter, convex hull, etc. rather than number of neighbours ([#5](https://github.com/campioru/Electoral_Redistricting/issues/5))
 - crazy idea: consider combining contiguity and compactness into one shape term (since they are quite strongly correlated anyway, i.e. reducing one generally reduces the other)
     - could be sort of piecewise i.e. H_C + max(H_D) when not contiguous, H_D when contiguous
     - would still need to check contiguity at each step but could skip a lot of compactness calculations in high-temperature phase
     - still need to give this some thought as this could result in poor compactness performance, since the algorithm would only start caring about compactness past the critical point
     - could always go back to the original idea of only suggesting changes that don't split constituencies, but would be pretty difficult to properly implement
-- no county border term
-    - could be tricky when considering maps without county border violations e.g. EU, LEA, Dublin, Cork
-    - could check if no. of sites = no. of counties, or if all sites in same county
-    - or could do something similar to population with a subclass for no county border term
-    - or just set the coupling constant to be 0 and have some redundant calculations
 - no temporal continuity term
+- remove redundant Hamiltonian calculations for certain maps
+    - don't consider county boundaries for areas within counties or EU redistricting
+    - could check if coupling constant is zero or if all EDs in same county/different counties
+    - above could also apply to other Hamiltonians, particularly temporal continuity when implemented (we usually always care about compactness and contiguity)
 - test alternative parallelisation e.g. keep threads open and use single/master thread when needed rather than closing and re-launching threads
 - try useful small redistricting instead of proofs-of-concept e.g. Dublin constituencies, Cork constituencies, European MP constituencies, various council LEAs
     - note that these all conveniently have no county borders involved so can work on this without county border Hamiltonian
@@ -35,13 +35,15 @@ Current state of affairs
 `txt_files_for_MCMC.py` - creates `.txt` files with GUID, population, and neighbours for each ED in specified area for `MCMC_SA.cpp` - command line input takes the form `area_type area_list area_name`, e.g.
 ````
 python3 code/txt_for_MCMC.py County LONGFORD,WESTMEATH,OFFALY,LAOIS "Midland counties"
+python3 code/txt_for_MCMC.py "Administrative Region" LIMERICK,"LIMERICK CITY" Limerick
 python3 code/txt_for_MCMC.py Constituency "CORK NORTH-CENTRAL","CORK NORTH-WEST","CORK SOUTH-CENTRAL","CORK SOUTH-WEST" Cork
 ````
 
 `MCMC_SA.cpp` - uses Metropolis/heatbath algorithm to approximate optimal configuration for given area and coupling constants via simulated annealing, executable takes area name, number of seats per constituency, (non-population) coupling constants, and number of measured/discarded iterations per temperature as command line input assuming files for population and neighbours exist in the current directory, e.g.
 ````
-./MCMC_SA "Midland counties" 2,3,3,3 2,1 5000,100
-./MCMC_SA Cork 3,3,4,5,5 4,0.72 10000,1000
+./MCMC_SA "Midland counties" 2,3,3,3 2,1,3 5000,100
+./MCMC_SA Limerick 3,4 0,0,0 1000,0
+./MCMC_SA Cork 3,3,4,5,5 4,0.72,0 10000,1000
 ````
 This also uses OpenMP to parallelise computations - number of threads should be set in the command line via
 ````
@@ -49,3 +51,6 @@ OMP_SET_NUM_THREADS=num_threads
 ````
 
 `plot.py` - plots statistical physics observables (Hamiltonians, specific heat capacities, acceptance rates) from `MCMC_SA.cpp` output
+````
+python3 code/plot.py "Midland counties"
+````
