@@ -2,10 +2,8 @@ Current state of affairs
 - modify data saving (`MCMC_SA.cpp`) & plotting (`plot.py`) to allow for multiple sets of parameters
     - parallelise `MCMC_SA.cpp` over parameter sets instead of calculations within MCMC updates?
     - plot some Pareto fronts/phase diagrams in `plot.py` from multiple sets of results of the C++ code
-- extend `plot.py` code
-    - plot acceptance rates
-    - plot specific heat capacities
-        - this needs proper errorbar considerations, probably by thinning data in the C++ code until it's independent and then calculating standard error of the variance (needs a lot of samples for high autocorrelation)
+- extend `plot.py` code to plot specific heat capacities
+    - this needs proper errorbar considerations, probably by thinning data in the C++ code until it's independent and then calculating standard error of the variance (needs a lot of samples for high autocorrelation)
 - contiguity term extremely inefficient (breadth-first search instead of potential matrix multiplication?)
     - some comments on GitHub ([#6](https://github.com/campioru/Electoral_Redistricting/issues/6)) about ensuring contiguity at all stages
 - no testing of alternative compactness terms e.g. something with area and perimeter, convex hull, etc. rather than number of neighbours ([#5](https://github.com/campioru/Electoral_Redistricting/issues/5))

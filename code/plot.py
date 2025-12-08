@@ -20,7 +20,8 @@ config_data = config_data[config_data.GUID.isin(GUIDs)].set_index("GUID").reinde
 degeneracy = 0
 config_file = os.path.join(area_dir, "configs.csv")
 with open(config_file) as f:
-    for _ in range(4):
+    Q = len([q.replace("\n", "") for q in f.readline().split(",")[1:]])
+    for _ in range(3):
         next(f)
     config_data["Initial"] = [int(q.replace("\n", "")) for q in f.readline().split(",")]
     next(f)
@@ -47,6 +48,7 @@ for sub, H in zip(subs, Hs):
         plt.plot(MCMC_data.beta, MCMC_data.beta, MCMC_data[f"H{sub}"]/MCMC_data[f"H{sub}"][0], label=H)
 plt.xscale("log")
 plt.xlim(MCMC_data.beta.iloc[0], MCMC_data.beta.iloc[-1])
+plt.xlabel(r"$\beta$")
 plt.legend(loc="lower left")
 plt.savefig(os.path.join(area_dir, "H vs β.pdf"))
 plt.close()
@@ -58,7 +60,23 @@ for sub, tau in zip(subs, taus):
 plt.xscale("log")
 plt.yscale("log")
 plt.xlim(MCMC_data.beta.iloc[0], MCMC_data.beta.iloc[-1])
+plt.xlabel(r"$\beta$")
 plt.legend(loc="upper left")
 plt.savefig(os.path.join(area_dir, "τ vs β.pdf"))
+plt.close()
+
+plt.errorbar(MCMC_data.beta, MCMC_data["acc"]/len(GUIDs), yerr=MCMC_data["acc_err"]/len(GUIDs))
+plt.axhline((Q-1)/Q, 0, 1, linestyle="--", color="k")
+plt.xscale("log")
+plt.xlim(MCMC_data.beta.iloc[0], MCMC_data.beta.iloc[-1])
+plt.xlabel(r"$\beta$")
+plt.savefig(os.path.join(area_dir, "α vs β.pdf"))
+plt.close()
+
+plt.plot(MCMC_data.beta, MCMC_data["time"])
+plt.xscale("log")
+plt.xlim(MCMC_data.beta.iloc[0], MCMC_data.beta.iloc[-1])
+plt.xlabel(r"$\beta$")
+plt.savefig(os.path.join(area_dir, "runtime vs β.pdf"))
 
 # TODO loop over a bunch of MCMC SA results
