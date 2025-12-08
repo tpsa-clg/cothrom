@@ -50,3 +50,16 @@ vector<double> thin(const vector<double>& chain, const int& tau)
   for (int n = 0; n < thinned.size(); n ++) thinned[n] = chain[n*tau];
   return thinned;
 }
+
+void Markov_chain_calculations(const vector<double>& chain, vector<double>& means, vector<double>& errs, vector<double>& taus, vector<double>& tau_errs)
+{
+  // chain: Markov chain to perform calculations on
+  // means/errs/taus/tau_errs: vectors to which results are pushed back
+
+  means.push_back(mean(chain));
+  double tau, deltatau;
+  autocorr(chain, means.back(), tau, deltatau);
+  taus.push_back(tau);
+  tau_errs.push_back(deltatau);
+  errs.push_back(mean_error(chain, means.back())*sqrt(taus.back()));
+}

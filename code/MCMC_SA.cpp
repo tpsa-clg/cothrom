@@ -149,31 +149,12 @@ int main(int argc, char *argv[])
     // ensuring another annealing iteration if more optimal configurations found during this iteration
     if (optimal_configs.size() > num_optimal_configs) continue_annealing = true;
 
-    // stats stuff for Hamiltonians - averages, errors, and autocorrelations
-    // TODO probably use a function for this...
-    double tau, deltatau;
-    for (int i = 0; i < J.size(); i ++)
-    {
-      Hs[i].push_back(mean(H_chain[i]));
-      autocorr(H_chain[i], Hs[i].back(), tau, deltatau);
-      H_taus[i].push_back(tau);
-      H_tau_errs[i].push_back(deltatau);
-      H_errs[i].push_back(mean_error(H_chain[i], Hs[i].back())*sqrt(H_taus[i].back()));
-    }
+    // stats stuff for each Hamiltonian - averages, errors, and autocorrelations
+    for (int i = 0; i < J.size(); i ++) Markov_chain_calculations(H_chain[i], Hs[i], H_errs[i], H_taus[i], H_tau_errs[i]);
 
-    // same as above but for total Hamiltonian
-    H_sums.push_back(mean(H_sum_chain));
-    autocorr(H_sum_chain, H_sums.back(), tau, deltatau);
-    H_sum_taus.push_back(tau);
-    H_sum_tau_errs.push_back(deltatau);
-    H_sum_errs.push_back((mean_error(H_sum_chain, H_sums.back())*sqrt(H_sum_taus.back())));
-
-    // and again for acceptance rate
-    accs.push_back(mean(acc_chain));
-    autocorr(acc_chain, accs.back(), tau, deltatau);
-    acc_taus.push_back(tau);
-    acc_tau_errs.push_back(deltatau);
-    acc_errs.push_back(mean_error(acc_chain, accs.back())*sqrt(acc_taus.back()));
+    // same as above but for total Hamiltonian and acceptance rate
+    Markov_chain_calculations(H_sum_chain, H_sums, H_sum_errs, H_sum_taus, H_sum_tau_errs);
+    Markov_chain_calculations(acc_chain, accs, acc_errs, acc_taus, acc_tau_errs);
 
     // getting runtime
     auto finish = std::chrono::steady_clock::now();
@@ -206,7 +187,6 @@ int main(int argc, char *argv[])
   }
 
   // all data vs temperature
-  // TODO loop over column titles instead of hardcoding
   file << "\nT,HP,HP_err,HP_tau,HP_tau_err,HC,HC_err,HC_tau,HC_tau_err,HD,HD_err,HD_tau,HD_tau_err,HB,HB_err,HB_tau,HB_tau_err,H,H_err,H_tau,H_tau_err,acc,acc_err,acc_tau,acc_tau_err,time\n";
   for (int t = 0; t < Ts.size(); t ++)
   {
