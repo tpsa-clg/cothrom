@@ -7,6 +7,7 @@
 using std::valarray;
 #include <chrono>
 #include <omp.h>
+#include <set>
 #include "Map.h"
 #include "statfuncs.h"
 
@@ -90,6 +91,12 @@ int main(int argc, char *argv[])
   vector<double> times(0);
   vector<double> accs(0), acc_errs(0), acc_taus(0), acc_tau_errs(0);
 
+  // variables for determining ground state degeneracy (set of optimal configurations)
+  double H_min = J.sum();
+  std::set<vector<int>> optimal_configs;
+  int num_optimal_configs;
+  bool continue_annealing;
+
   // looping over temperatures
   do
   {
@@ -110,13 +117,37 @@ int main(int argc, char *argv[])
     // Markov chains for Hamiltonians and acceptance rates
     vector<vector<double>> H_chain(J.size(), vector<double>(N));
     vector<double> H_sum_chain(N), acc_chain(N);
-    // getting acceptance rates and Hamiltonians for measured iterations
+    // boolean for continuing/ending simulated annealing
+    continue_annealing = false;
+    // number of optimal configurations before sweeps
+    num_optimal_configs = optimal_configs.size();
+
+    // performing sweeps
     for (int n = 0; n < N; n ++)
     {
+      // getting acceptance rates and Hamiltonians for measured iterations
       acc_chain[n] = map.GS_Sweep(H, J_ZT);
       for (int i = 0; i < J.size(); i ++) H_chain[i][n] = H[i];
       H_sum_chain[n] = (J_Z*H).sum();
+
+      // updating set of optimal configurations and ensuring another annealing iteration if new lowest energy found
+      if (H_sum_chain[n] < H_min)
+      {
+        H_min = H_sum_chain[n];
+        optimal_configs = { map.config() };
+        continue_annealing = true;
+      }
+      else
+      {
+        // otherwise adding optimal configuration if same energy as lowest energy found
+        if (H_sum_chain[n] == H_min) optimal_configs.insert(map.config());
+        // and ensuring another annealing iteration if total Hamiltonian is not constant
+        if (n > 0 && H_sum_chain[n] != H_sum_chain[n-1]) continue_annealing = true;
+      }
     }
+
+    // ensuring another annealing iteration if more optimal configurations found during this iteration
+    if (optimal_configs.size() > num_optimal_configs) continue_annealing = true;
 
     // stats stuff for Hamiltonians - averages, errors, and autocorrelations
     // TODO probably use a function for this...
@@ -151,11 +182,9 @@ int main(int argc, char *argv[])
     // annealing
     T *= cool;
   }
-  // finish annealing when no new states have been accepted
-  while (accs.back() >= 1. / double(N));
+  // continuing annealing procedure if required
+  while (continue_annealing);
 
-  // final configuration
-  vector<int> final = map.config();
   // printing everything to .csv
   std::ofstream file;
   // TODO save parameters in filename
@@ -166,11 +195,16 @@ int main(int argc, char *argv[])
   file << "\nN," << N << "," << N_disc << "\n";
   file << "J";
   for (int j = 0; j < J.size(); j ++) file << "," << J[j];
-  // initial and final configurations
-  file << "\ninit";
-  for (int x = 0; x < map.EDs(); x ++) file << "," << init[x];
-  file << "\nfinal";
-  for (int x = 0; x < map.EDs(); x ++) file << "," << final[x];
+  // initial and optimal configurations
+  file << "\ninitial\n" << init.front();
+  for (int x = 1; x < map.EDs(); x ++) file << "," << init[x];
+  file << "\noptimals";
+  for (vector<int> config : optimal_configs)
+  {
+    file << "\n" << config[0];
+    for (int x = 1; x < config.size(); x ++) file << "," << config[x]; 
+  }
+
   // all data vs temperature
   // TODO loop over column titles instead of hardcoding
   file << "\nT,HP,HP_err,HP_tau,HP_tau_err,HC,HC_err,HC_tau,HC_tau_err,HD,HD_err,HD_tau,HD_tau_err,HB,HB_err,HB_tau,HB_tau_err,H,H_err,H_tau,H_tau_err,acc,acc_err,acc_tau,acc_tau_err,time\n";

@@ -17,17 +17,24 @@ GUIDs = np.loadtxt(os.path.join(area_dir, "GUID.txt"), dtype="str")
 config_data = config_data[config_data.GUID.isin(GUIDs)].set_index("GUID").reindex(index=GUIDs).reset_index()
 
 # Reading & plotting initial & final configurations
+degeneracy = 0
 config_file = os.path.join(area_dir, "configs.csv")
 with open(config_file) as f:
-    for _ in range(3):
+    for _ in range(4):
         next(f)
-    config_data["Initial"], config_data["Final"] = ([int(q.replace("\n", "")) for q in f.readline().split(",")[1:]] for _ in range(2))
-for state in ["Initial", "Final"]:
+    config_data["Initial"] = [int(q.replace("\n", "")) for q in f.readline().split(",")]
+    next(f)
+    optimal_config = f.readline().split(",")
+    while optimal_config[0] != "T":
+        degeneracy += 1
+        config_data[f"Optimal {degeneracy}"] = [int(q.replace("\n", "")) for q in optimal_config]
+        optimal_config = f.readline().split(",")
+for state in ["Initial"] + [f"Optimal {d}" for d in range(1, degeneracy+1)]:
     config_data.explore(column=state).save(os.path.join(area_dir, f"{state}.html"))
 del config_data
 
 # Reading & plotting MCMC SA data (measurements vs temperature)
-MCMC_data = pd.read_csv(config_file, skiprows=5)
+MCMC_data = pd.read_csv(config_file, skiprows=6+degeneracy)
 MCMC_data["beta"] = 1. / MCMC_data["T"]
 subs = ["P", "C", "D", "B", ""]
 

@@ -14,6 +14,7 @@ Current state of affairs
     - would still need to check contiguity at each step but could skip a lot of compactness calculations in high-temperature phase
     - still need to give this some thought as this could result in poor compactness performance, since the algorithm would only start caring about compactness past the critical point
     - could always go back to the original idea of only suggesting changes that don't split constituencies, but would be pretty difficult to properly implement
+- test sets vs vectors for Map::connect_, optimal_configs
 - no temporal continuity term
 - remove redundant Hamiltonian calculations for certain maps
     - don't consider county boundaries for areas within counties or EU redistricting
@@ -36,7 +37,7 @@ Current state of affairs
 ````
 python3 code/txt_for_MCMC.py County LONGFORD,WESTMEATH,OFFALY,LAOIS "Midland counties"
 python3 code/txt_for_MCMC.py "Administrative Region" LIMERICK,"LIMERICK CITY" Limerick
-python3 code/txt_for_MCMC.py Constituency "CORK NORTH-CENTRAL","CORK NORTH-WEST","CORK SOUTH-CENTRAL","CORK SOUTH-WEST" Cork
+python3 code/txt_for_MCMC.py Constituency "CORK EAST","CORK NORTH-CENTRAL","CORK NORTH-WEST","CORK SOUTH-CENTRAL","CORK SOUTH-WEST" Cork
 ````
 
 `MCMC_SA.cpp` - uses Metropolis/heatbath algorithm to approximate optimal configuration for given area and coupling constants via simulated annealing, executable takes area name, number of seats per constituency, (non-population) coupling constants, and number of measured/discarded iterations per temperature as command line input assuming files for population and neighbours exist in the current directory, e.g.
