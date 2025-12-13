@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
   valarray<double> J(J_vec.data(), J_vec.size());
   // incorporating Hamiltonian normalisations into coupling constants
   // note: assumes constituency 0 has the smallest number of seats - can change this to find the smallest seat number but this works for now
-  valarray<double> Z = { double(map.total_seats()-map.seat(0)), double(map.EDs()), double(map.borders()), double(map.Q()*map.counties()) };
+  valarray<double> Z = { double(map.total_seats()-map.seat(0)), double(map.EDs()), double(map.borders()), double(map.EDs()*(map.counties()-1.)/map.counties()) };
   for (int q = 1; q < map.Q(); q ++) Z[0] += map.seat(q);
   valarray<double> J_Z = J/Z;
 
