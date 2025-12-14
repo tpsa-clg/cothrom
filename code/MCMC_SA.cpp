@@ -197,5 +197,7 @@ int main(int argc, char *argv[])
     file << times[t] << "\n";
   }
 
+  file.close();
+
   return 0;
 }

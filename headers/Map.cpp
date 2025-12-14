@@ -17,7 +17,7 @@ vector<vector<int>> Map::connect_(vector<int>& disconnected) const
   // create an empty list of lists, where connected[i] will give the i-th connected subset of the input ED list
   vector<vector<int>> connected(0);
   // iterate until our list of EDs is empty, i.e. until we have assigned each ED to a connected subset
-  while (disconnected.size())
+  while (not disconnected.empty())
   {
     // pick an arbitrary element of the remaining list of EDs - here we choose the last element of the list
     // we will then create the connected subset to which this ED belongs
@@ -177,17 +177,46 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
   q_cou_[prop][ED_cou_[x]] ++;
 }
 
-Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(populations.size()), total_pop_(std::reduce(ED_pop_.begin(), ED_pop_.end())), EDs_(populations.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats.size()), total_seats_(std::reduce(seats_.begin(), seats_.end())), av_pop_(double(total_pop_) / double(total_seats_)), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
+Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(populations.size()), total_pop_(std::reduce(ED_pop_.begin(), ED_pop_.end())), EDs_(populations.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats.size()), total_seats_(std::reduce(seats_.begin(), seats_.end())), av_pop_(double(total_pop_) / double(total_seats_)), q_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
 {
   // seats: number of seats per constituency
   // populations/neighbours/counties: list of ED populations/neighbours/counties
 
-  // randomly assign ED constituencies, get number of borders
-  for (int x = 0; x < EDs_; x ++)
+  // initialise contiguous constituencies
+  vector<int> assigned_EDs(0);
+  vector<vector<int>> neighbour_links (Q_, vector<int>(0));
+  // assign one ED to each constituency
+  for (int q = 0; q < Q_; q ++)
   {
-    ED_q_[x] = int_dist_(r);
-    borders_ += ED_nei_[x].size();
+    int x = q * EDs_ / Q_;
+    assigned_EDs.push_back(x);
+    ED_q_[x] = q;
+    for (int y = 0; y < ED_nei_[x].size(); y ++) neighbour_links[q].push_back(ED_nei_[x][y]);
   }
+  // keep assigning EDs until all assigned
+  while (assigned_EDs.size() < EDs_) for (int q = 0; q < Q_; q ++)
+  {
+    int x;
+    vector<int>::iterator it;
+    // loop through constituency's neighbours until one can be added to constituency or all already assigned
+    while (it != assigned_EDs.end() && neighbour_links[q].size())
+    {
+      x = neighbour_links[q].back();
+      neighbour_links[q].pop_back();
+      it = std::find(assigned_EDs.begin(), assigned_EDs.end(), x);
+    }
+    // if neighbour isn't assigned yet then assign it
+    if (it == assigned_EDs.end())
+    {
+      ED_q_[x] = q;
+      assigned_EDs.push_back(x);
+      // add new neighbours to list of constituency's neighbours to check next
+      for (int y = 0; y < ED_nei_[x].size(); y ++) if (std::find(assigned_EDs.begin(), assigned_EDs.end(), ED_nei_[x][y]) == assigned_EDs.end()) neighbour_links[q].push_back(ED_nei_[x][y]);
+    }
+  }
+
+  // get number of borders
+  for (int x = 0; x < EDs_; x ++) borders_ += ED_nei_[x].size();
   borders_ /= 2;
 
   // get constituency populations and connected subsets
@@ -234,7 +263,7 @@ int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
   {
     // proposing a constituency different to x's current constituency
     int prop;
-    do { prop = int_dist_(r); } while (prop == ED_q_[x]);
+    do { prop = q_dist_(r); } while (prop == ED_q_[x]);
 
     // calculating the proposed change in each Hamiltonian
     int cqg_idx;

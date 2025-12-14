@@ -33,7 +33,7 @@ class Map
     double av_pop_;
     // Uniform distribution over constituency number.
     // Used to propose a constituency at random for the Metropolis algorithm.
-    std::uniform_int_distribution<int> int_dist_;
+    std::uniform_int_distribution<int> q_dist_;
 
     /* DYNAMIC PARAMETERS*/
     // Population of each constituency (minus ideal population, i.e. average population per constituency * number of seats in constituency).
