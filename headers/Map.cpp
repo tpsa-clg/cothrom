@@ -50,6 +50,16 @@ vector<vector<int>> Map::connect_(vector<int>& disconnected) const
   }
   return connected;
 }
+vector<int> Map::diff_neighbours_(const int& x) const
+{
+  vector<int> props(0);
+  for (int y = 0; y < ED_nei_[x].size(); y ++)
+  {
+    int q = ED_q_[ED_nei_[x][y]];
+    if (q != ED_q_[x]) props.push_back(q);
+  }
+  return props;
+}
 
 valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const
 {
@@ -199,7 +209,7 @@ Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<
     int x;
     vector<int>::iterator it;
     // loop through constituency's neighbours until one can be added to constituency or all already assigned
-    while (it != assigned_EDs.end() && neighbour_links[q].size())
+    while (it != assigned_EDs.end() && not neighbour_links[q].empty())
     {
       x = neighbour_links[q].back();
       neighbour_links[q].pop_back();
@@ -210,8 +220,8 @@ Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<
     {
       ED_q_[x] = q;
       assigned_EDs.push_back(x);
-      // add new neighbours to list of constituency's neighbours to check next
-      for (int y = 0; y < ED_nei_[x].size(); y ++) if (std::find(assigned_EDs.begin(), assigned_EDs.end(), ED_nei_[x][y]) == assigned_EDs.end()) neighbour_links[q].push_back(ED_nei_[x][y]);
+      // add new neighbours to list of EDs to check next, if not assigned or not already in list
+      for (int y = 0; y < ED_nei_[x].size(); y ++) if (std::find(assigned_EDs.begin(), assigned_EDs.end(), ED_nei_[x][y]) == assigned_EDs.end() && std::find(neighbour_links[q].begin(), neighbour_links[q].end(), ED_nei_[x][y]) == assigned_EDs.end()) neighbour_links[q].push_back(ED_nei_[x][y]);
     }
   }
 
@@ -261,9 +271,14 @@ int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
   // sweeping over all EDs
   for (int x = 0; x < EDs_; x ++)
   {
-    // proposing a constituency different to x's current constituency
+    // find x's neighbours' constituencies different to x's current constituencies
+    vector<int> props = diff_neighbours_(x);
+    // move to next ED if no neighbours in different constituency
+    if (props.empty()) continue;
+    // else choose proposal at random from neighbours' constituencies
+    // TODO consider picking directly from set instead of from all constituencies until we get one in the list
     int prop;
-    do { prop = q_dist_(r); } while (prop == ED_q_[x]);
+    do { prop = q_dist_(r); } while (std::find(props.begin(), props.end(), prop) == props.end());
 
     // calculating the proposed change in each Hamiltonian
     int cqg_idx;
@@ -293,32 +308,33 @@ int Map::GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
   for (int x = 0; x < EDs_; x ++)
   {
     int curr = ED_q_[x];
-    // initialising vectors for deltaH_prop_() for all possible changes
+    // find x's neighbours' constituencies different to x's current constituencies
+    vector<int> props = diff_neighbours_(x);
+    // move to next ED if no neighbours in different constituency
+    if (props.empty()) continue;
+    // else initialise vectors for deltaH_prop_() for all possible changes
     int cqg_idx;
     vector<vector<int>> cngs, pqg_idxs(Q_, vector<int>(0));
     vector<vector<vector<int>>> pngs(Q_, vector<vector<int>>(0));
     vector<valarray<double>> deltaH(Q_, deltaH_curr_(x, cqg_idx, cngs));
     vector<double> prop_dist(Q_);
-    // iterating over all constituencies
+    // get probabilities for each constituency change
     #pragma omp parallel for
     for (int q = 0; q < Q_; q ++)
     {
-      // calculate change in Hamiltonians & corresponding distribution weight for each possible change
-      if (q != curr)
+      // no need to calculate anything for "change" to current constituency
+      if (q == curr) prop_dist[q] = 1.;
+      // not possible to change to non-neighbouring constituency
+      else if (std::find(props.begin(), props.end(), q) == props.end()) prop_dist[q] = 0.;
+      // otherwise calculate change in Hamiltonians & corresponding distribution weight
+      else
       {
         deltaH[q] += deltaH_prop_(x, q, pqg_idxs[q], pngs[q]);
         prop_dist[q] = exp(-(J_ZT*deltaH[q]).sum());
       }
-      // no need to calculate "change" to current constituency
-      else
-      {
-        deltaH[q] = valarray<double>{ 0., 0., 0. };
-        prop_dist[q] = 1.;
-      }
     }
     // "propose" a new constituency based on calculated distribution
-    std::discrete_distribution<int> Gibbs_dist(prop_dist.begin(), prop_dist.end());
-    int prop = Gibbs_dist(r);
+    int prop = std::discrete_distribution<int>(prop_dist.begin(), prop_dist.end())(r);
 
     // only need to update configuration if proposed and current constituencies are different
     if (prop != curr)

@@ -49,6 +49,9 @@ class Map
     // Also note: the ordering of subsets, and within each subset, is arbitrary.
     vector<vector<int>> connect_(vector<int>& disconnected) const;
 
+    // Return the neighbouring constituencies of an ED different to its current constituency.
+    vector<int> Map::diff_neighbours_(const int& x) const;
+
     // Return the change to each Hamiltonian by changing an ED's constituency (from the current constituency/to a proposed constituency).
     // Also returns (by reference) some relevant quantities for site_update_().
     valarray<double> deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const;
