@@ -17,7 +17,7 @@ vector<vector<int>> Map::connect_(vector<int>& disconnected) const
   // create an empty list of lists, where connected[i] will give the i-th connected subset of the input ED list
   vector<vector<int>> connected(0);
   // iterate until our list of EDs is empty, i.e. until we have assigned each ED to a connected subset
-  while (disconnected.size())
+  while (not disconnected.empty())
   {
     // pick an arbitrary element of the remaining list of EDs - here we choose the last element of the list
     // we will then create the connected subset to which this ED belongs
@@ -101,15 +101,19 @@ valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& p
   {
     int y = ED_nei_[x][i];
     // if neighbour is in proposed constituency, find its connected subset
-    if (ED_q_[y] == prop) for (int g = 0; g < q_group_[prop].size(); g ++) if (std::find(q_group_[prop][g].begin(), q_group_[prop][g].end(), y) != q_group_[prop][g].end())
+    if (ED_q_[y] == prop) for (int g = 0; g < q_group_[prop].size(); g ++)
     {
-      // append connected subset (index + subset) to lists if we haven't already
-      if (std::find(pqg_idxs.begin(), pqg_idxs.end(), g) == pqg_idxs.end())
+      vector<int> group = q_group_[prop][g];
+      if (std::find(group.begin(), group.end(), y) != group.end())
       {
-        pqg_idxs.push_back(g);
-        pngs.push_back(q_group_[prop][g]);
+        // append connected subset (index + subset) to lists if we haven't already
+        if (std::find(pqg_idxs.begin(), pqg_idxs.end(), g) == pqg_idxs.end())
+        {
+          pqg_idxs.push_back(g);
+          pngs.push_back(group);
+        }
+        break;
       }
-      break;
     }
   }
 
@@ -190,7 +194,7 @@ Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<
   }
   borders_ /= 2;
 
-  // get constituency populations and connected subsets
+  // get constituency populations, connected subsets, and county tallies
   config_update_();
 }
 
@@ -219,7 +223,7 @@ valarray<double> Map::H() const
   int HD = 0;
   #pragma omp parallel for reduction(+:HD)
   for (int x = 0; x < EDs_; x ++) for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[x] != ED_q_[ED_nei_[x][i]]) HD ++;
-  // return population, contigutiy, and compactness Hamiltonians
+  // return population, contiguity, and compactness Hamiltonians
   return valarray<double>{ HP, double(HC), double(HD/2), double(HB) };
 }
 

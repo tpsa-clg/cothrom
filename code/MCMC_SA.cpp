@@ -196,6 +196,7 @@ int main(int argc, char *argv[])
     file << accs[t] << "," << acc_errs[t] << "," << acc_taus[t] << "," << acc_tau_errs[t] << ",";
     file << times[t] << "\n";
   }
+  file.close();
 
   return 0;
 }
