@@ -10,6 +10,59 @@ using std::valarray;
 std::mt19937 r(1234);
 std::uniform_real_distribution<double> standard_uniform(0., 1.);
 
+bool Map::contiguous_after_removal_(const int& x) const
+{
+  // x: ED index
+
+  // get neighbours of x in its current constituency
+  int curr = ED_q_[x];
+  vector<int> curr_nei(0);
+  for (int n = 0; n < ED_nei_[x].size(); n ++)
+  {
+    int y = ED_nei_[x][n];
+    if (ED_q_[y] == curr) curr_nei.push_back(y);
+  }
+
+  // contiguity broken if no neighbours in same constituency (and so removing x from its constituency erases constituency entirely) or all neighbours in x's constituency (and so changing x to another constituency creates a disconnected part for its new constituency)
+  if (curr_nei.empty() || curr_nei.size() == ED_nei_[x].size()) return false;
+  // contiguity not broken if x has only one neighbour in same constituency (and thus not connecting any regions together)
+  else if (curr_nei.size() == 1) return true;
+
+  // otherwise check if neighbours in same constituency remain connected after removing x
+  else
+  {
+    // pick an arbitrary neighbour of x
+    vector<int> connected = { curr_nei.back() };
+    curr_nei.pop_back();
+    // iterate through EDs connected to chosen neighbour
+    int i = 0;
+    while (i < connected.size())
+    {
+      int y = connected[i];
+      // loop over neighbours of ED
+      for (int i = 0; i < ED_nei_[y].size(); i ++)
+      {
+        int z = ED_nei_[y][i];
+        // add neighbour to connected list if not x, if in same constituency, and if not already in connected list
+        if (z != x && ED_q_[z] == curr && std::find(connected.begin(), connected.end(), z) == connected.end())
+        {
+          connected.push_back(z);
+          vector<int>::iterator it = std::find(curr_nei.begin(), curr_nei.end(), z);
+          if (it != curr_nei.end())
+          {
+            // remove x's neighbour from the list of its same-constituency neighbours if in connected list
+            curr_nei.erase(it);
+            // if all of x's neighbours are connected after removing x then constituency still contiguous
+            if (curr_nei.empty()) return true;
+          }
+        }
+      }
+      i ++;
+    }
+    // if this stage is reached then curr_nei is not empty, and so not all of x's neighbours are connected after removing x
+    return false;
+  }
+}
 vector<int> Map::diff_neighbours_(const int& x) const
 {
   vector<int> props(0);
@@ -179,11 +232,10 @@ int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
   // sweeping over all EDs
   for (int x = 0; x < EDs_; x ++)
   {
-    // find x's neighbours' constituencies different to x's current constituencies
-    vector<int> props = diff_neighbours_(x);
-    // move to next ED if no neighbours in different constituency
-    if (props.empty()) continue;
+    // move to next ED if removing x from its current constituency breaks contiguity
+    if (not contiguous_after_removal_(x)) continue;
     // else choose proposal at random from neighbours' constituencies
+    vector<int> props = diff_neighbours_(x);
     int prop;
     // TODO consider picking directly from set instead of from all constituencies until we get one in the list
     do { prop = q_dist_(r); } while (std::find(props.begin(), props.end(), prop) == props.end());
@@ -212,11 +264,11 @@ int Map::GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
   // sweeping over all EDs
   for (int x = 0; x < EDs_; x ++)
   {
-    // find x's neighbours' constituencies different to x's current constituencies
+    // move to next ED if removing x from its current constituency breaks contiguity
+    if (not contiguous_after_removal_(x)) continue;
+    // else find x's neighbours' constituencies different to x's current constituencies
     vector<int> props = diff_neighbours_(x);
-    // move to next ED if no neighbours in different constituency
-    if (props.empty()) continue;
-    // else get probabilities for each possible constituency change
+    // get probabilities for each possible constituency change
     int curr = ED_q_[x];
     vector<valarray<double>> deltaH(Q_, deltaH_curr_(x));
     vector<double> prop_dist(Q_);

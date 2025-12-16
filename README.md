@@ -5,7 +5,14 @@ Current state of affairs
 - extend `plot.py` code to plot specific heat capacities
     - this needs proper errorbar considerations, probably by thinning data in the C++ code until it's independent and then calculating standard error of the variance (needs a lot of samples for high autocorrelation)
 - no testing of alternative compactness terms e.g. something with area and perimeter, convex hull, etc. rather than number of neighbours ([#5](https://github.com/campioru/Electoral_Redistricting/issues/5))
-- test sets vs vectors for optimal_configs
+- think about autocorrelation over skipped EDs
+    - under the current implementation of only proposing from neighbouring constituencies, we must exclude non-contiguous configurations from the state space to ensure connected Markov processes and for the Gibbs sampler to have the correct proposal distribution
+    - skipping an ED because it would break contiguity is thus not the same as rejecting a valid proposal, and should not be considered an extra entry in the Markov chain
+    - therefore the number of Markov steps in a sweep is not constant, and recording observables at the end of each sweep skips a different number of chain entries each time
+    - this may or may not result in incorrect autocorrelation calculations - in principle should be fine but need to convince myself of this
+    - if it's not fine then this provides incorrect autocorrelations and thus incorrect errorbars (could be under- or over-estimated) but doesn't affect the annealing if enough iterations are taken at each temperature (which we don't know if we don't have the correct autocorrelation!)
+    - could fix this by recording observables after a certain fixed number of proposals (e.g. number of EDs) which would require changing the MCMC functions to be defined for a single ED - shouldn't be too much of a change
+- test sets vs vectors for Map::contiguous_after_removal_, optimal_configs
 - no temporal continuity term
 - remove redundant Hamiltonian calculations for certain maps
     - don't consider county boundaries for areas within counties or EU redistricting

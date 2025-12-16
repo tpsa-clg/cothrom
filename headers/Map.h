@@ -41,6 +41,10 @@ class Map
     // Tally of number of EDs in each county for each constituency.
     vector<vector<int>> q_cou_;
 
+    // Test if removing an ED from its current constituency breaks contiguity.
+    // Note: a constituency is considered to be non-contiguous if it does not exist.
+    bool contiguous_after_removal_(const int& x) const;
+
     // Return the neighbouring constituencies of an ED different to its current constituency.
     vector<int> diff_neighbours_(const int& x) const;
 
