@@ -37,7 +37,7 @@ del config_data
 # Reading & plotting MCMC SA data (measurements vs temperature)
 MCMC_data = pd.read_csv(config_file, skiprows=6+degeneracy)
 MCMC_data["beta"] = 1. / MCMC_data["T"]
-subs = ["P", "C", "D", "B", ""]
+subs = ["P", "D", "B", ""]
 
 # TODO make this a function instead of repeating
 Hs = [rf"$H_{sub}$" for sub in subs[:-1]] + [r"$H$"]

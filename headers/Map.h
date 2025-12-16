@@ -38,32 +38,23 @@ class Map
     /* DYNAMIC PARAMETERS*/
     // Population of each constituency (minus ideal population, i.e. average population per constituency * number of seats in constituency).
     vector<double> q_pop_;
-    // Connected subsets of each constituency.
-    // A constituency is contiguous when it has one connected subset.
-    vector<vector<vector<int>>> q_group_;
     // Tally of number of EDs in each county for each constituency.
     vector<vector<int>> q_cou_;
 
-    // Return a vector of (geographically) connected subsets from a vector of EDs.
-    // Note: input vector will be empty at return.
-    // Also note: the ordering of subsets, and within each subset, is arbitrary.
-    vector<vector<int>> connect_(vector<int>& disconnected) const;
-
     // Return the neighbouring constituencies of an ED different to its current constituency.
-    vector<int> Map::diff_neighbours_(const int& x) const;
+    vector<int> diff_neighbours_(const int& x) const;
 
     // Return the change to each Hamiltonian by changing an ED's constituency (from the current constituency/to a proposed constituency).
-    // Also returns (by reference) some relevant quantities for site_update_().
-    valarray<double> deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const;
-    valarray<double> deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const;
+    valarray<double> deltaH_curr_(const int& x) const;
+    valarray<double> deltaH_prop_(const int& x, const int& prop) const;
 
-    // Update constituency populations, connected subsets, and county tallies.
+    // Update constituency populations and county tallies.
     // Only used at construction and manual configuration changes.
     void config_update_();
 
-    // Update an ED's constituency and makes corresponding population & connected subset changes.
+    // Update an ED's constituency and make corresponding population changes.
     // Used after each acceptance in the MCMC algorithms.
-    void site_update_(const int& x, const int& prop, const int& cqg_idx, vector<vector<int>>& cngs, vector<int>& pqg_idxs, vector<vector<int>>& pngs);
+    void site_update_(const int& x, const int& prop);
   public:
     // Class constructor.
     Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties);
@@ -82,15 +73,16 @@ class Map
     double av_pop() const { return av_pop_; }
 
     // Globally update a map's configuration.
+    // Note: make sure the given configuration is contiguous, as there is currently no check for this!
     void change_config(const vector<int>& config);
 
     // Return each (unnormalised) Hamiltonian term of the current configuration.
     valarray<double> H() const;
 
-    // Perform a single Metropolis algorithm sweep and return the acceptance rate.
+    // Perform a single Metropolis algorithm sweep, update the Hamiltonian accordingly, and return the acceptance rate.
     int MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT);
 
-    // Perform a single Gibbs sampler (heat bath) sweep and return the "acceptance" rate (how often an ED is changed).
+    // Perform a single Gibbs sampler (heat bath) sweep, update the Hamiltonian accordingly, and return the "acceptance" rate (how often an ED is changed).
     int GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT);
 };
 

@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
   valarray<double> J(J_vec.data(), J_vec.size());
   // incorporating Hamiltonian normalisations into coupling constants
   // note: assumes constituency 0 has the smallest number of seats - can change this to find the smallest seat number but this works for now
-  valarray<double> Z = { double(map.total_seats()-map.seat(0)), double(map.EDs()), double(map.borders()), double(map.EDs()*(map.counties()-1.)/map.counties()) };
+  valarray<double> Z = { double(map.total_seats()-map.seat(0)), double(map.borders()), double(map.EDs()*(map.counties()-1.)/map.counties()) };
   for (int q = 1; q < map.Q(); q ++) Z[0] += map.seat(q);
   valarray<double> J_Z = J/Z;
 
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
   }
 
   // all data vs temperature
-  file << "\nT,HP,HP_err,HP_tau,HP_tau_err,HC,HC_err,HC_tau,HC_tau_err,HD,HD_err,HD_tau,HD_tau_err,HB,HB_err,HB_tau,HB_tau_err,H,H_err,H_tau,H_tau_err,acc,acc_err,acc_tau,acc_tau_err,time\n";
+  file << "\nT,HP,HP_err,HP_tau,HP_tau_err,HD,HD_err,HD_tau,HD_tau_err,HB,HB_err,HB_tau,HB_tau_err,H,H_err,H_tau,H_tau_err,acc,acc_err,acc_tau,acc_tau_err,time\n";
   for (int t = 0; t < Ts.size(); t ++)
   {
     file << Ts[t] << ",";
