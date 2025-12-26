@@ -59,9 +59,7 @@ int main(int argc, char *argv[])
   while (getline(ss, line, ',')) J_vec.push_back(stod(line));
   valarray<double> J(J_vec.data(), J_vec.size());
   // incorporating Hamiltonian normalisations into coupling constants
-  // note: assumes constituency 0 has the smallest number of seats - can change this to find the smallest seat number but this works for now
-  valarray<double> Z = { double(map.total_seats()-map.seat(0)), double(map.EDs()), double(map.borders()), double(map.EDs()*(map.counties()-1.)/map.counties()) };
-  for (int q = 1; q < map.Q(); q ++) Z[0] += map.seat(q);
+  valarray<double> Z = { 2.*(map.total_seats() - *std::min_element(seats.begin(), seats.end())), double(map.EDs()), double(map.borders()), map.EDs()*(map.counties()-1.)/map.counties() };
   valarray<double> J_Z = J/Z;
 
   // getting maximum population and number of neighbours
@@ -85,11 +83,14 @@ int main(int argc, char *argv[])
   getline(ss, line, ',');
   int N_disc = stoi(line);
 
-  // vectors for storing observables & errors & autocorrelation times at each temperature
-  vector<vector<double>> Hs(J.size(), vector<double>(0)), H_errs(J.size(), vector<double>(0)), H_taus(J.size(), vector<double>(0)), H_tau_errs(J.size(), vector<double>(0));
-  vector<double> H_sums(0), H_sum_errs(0), H_sum_taus(0), H_sum_tau_errs(0);
+  // vectors for each Hamiltonian at each temperature (sample means, sample variances, autocorrelation time estimators, and their corresponding errors)
+  vector<vector<double>> Hs(J.size(), vector<double>(0)), H_errs(J.size(), vector<double>(0)), H_vars(J.size(), vector<double>(0)), H_var_errs(J.size(), vector<double>(0)), H_taus(J.size(), vector<double>(0)), H_tau_errs(J.size(), vector<double>(0));
+  // same as above but for linear combination of Hamiltonians (i.e. what the MCMCSA algorithm minimises)
+  vector<double> H_sums(0), H_sum_errs(0), H_sum_vars(0), H_sum_var_errs(0), H_sum_taus(0), H_sum_tau_errs(0);
+  // same as above but for acceptance rate
+  vector<double> accs(0), acc_errs(0), acc_vars(0), acc_var_errs(0), acc_taus(0), acc_tau_errs(0);
+  // vector for runtime at each temperature
   vector<double> times(0);
-  vector<double> accs(0), acc_errs(0), acc_taus(0), acc_tau_errs(0);
 
   // variables for determining ground state degeneracy (set of optimal configurations)
   double H_min = J.sum();
@@ -150,11 +151,11 @@ int main(int argc, char *argv[])
     if (optimal_configs.size() > num_optimal_configs) continue_annealing = true;
 
     // stats stuff for each Hamiltonian - averages, errors, and autocorrelations
-    for (int i = 0; i < J.size(); i ++) Markov_chain_calculations(H_chain[i], Hs[i], H_errs[i], H_taus[i], H_tau_errs[i]);
+    for (int i = 0; i < J.size(); i ++) Markov_chain_calculations(H_chain[i], Hs[i], H_errs[i], H_vars[i], H_var_errs[i], H_taus[i], H_tau_errs[i]);
 
     // same as above but for total Hamiltonian and acceptance rate
-    Markov_chain_calculations(H_sum_chain, H_sums, H_sum_errs, H_sum_taus, H_sum_tau_errs);
-    Markov_chain_calculations(acc_chain, accs, acc_errs, acc_taus, acc_tau_errs);
+    Markov_chain_calculations(H_sum_chain, H_sums, H_sum_errs, H_sum_vars, H_sum_var_errs, H_sum_taus, H_sum_tau_errs);
+    Markov_chain_calculations(acc_chain, accs, acc_errs, acc_vars, acc_var_errs, acc_taus, acc_tau_errs);
 
     // getting runtime
     auto finish = std::chrono::steady_clock::now();
@@ -170,12 +171,14 @@ int main(int argc, char *argv[])
   std::ofstream file;
   // TODO save parameters in filename
   file.open(data_dir + "configs.csv");
-  // seats, measured & discarded sweeps, coupling constants
+  // seats, measured & discarded sweeps, coupling constants, Hamiltonian normalisations
   file << "Q";
   for (int q = 0; q < seats.size(); q ++) file << "," << map.seat(q);
   file << "\nN," << N << "," << N_disc << "\n";
   file << "J";
   for (int j = 0; j < J.size(); j ++) file << "," << J[j];
+  file << "\nZ";
+  for (int z = 0; z < Z.size(); z ++) file << "," << Z[z];
   // initial and optimal configurations
   file << "\ninitial\n" << init.front();
   for (int x = 1; x < map.EDs(); x ++) file << "," << init[x];
@@ -187,13 +190,13 @@ int main(int argc, char *argv[])
   }
 
   // all data vs temperature
-  file << "\nT,HP,HP_err,HP_tau,HP_tau_err,HC,HC_err,HC_tau,HC_tau_err,HD,HD_err,HD_tau,HD_tau_err,HB,HB_err,HB_tau,HB_tau_err,H,H_err,H_tau,H_tau_err,acc,acc_err,acc_tau,acc_tau_err,time\n";
+  file << "\nT,HP,HP_err,HP_var,HP_var_err,HP_tau,HP_tau_err,HC,HC_err,HC_var,HC_var_err,HC_tau,HC_tau_err,HD,HD_err,HD_var,HD_var_err,HD_tau,HD_tau_err,HB,HB_err,HB_var,HB_var_err,HB_tau,HB_tau_err,H,H_err,H_var,H_var_err,H_tau,H_tau_err,acc,acc_err,acc_var,acc_var_err,acc_tau,acc_tau_err,time\n";
   for (int t = 0; t < Ts.size(); t ++)
   {
     file << Ts[t] << ",";
-    for (int i = 0; i < J.size(); i ++) file << Hs[i][t] << "," << H_errs[i][t] << "," << H_taus[i][t] << "," << H_tau_errs[i][t] << ",";
-    file << H_sums[t] << "," << H_sum_errs[t] << "," << H_sum_taus[t] << "," << H_sum_tau_errs[t] << ",";
-    file << accs[t] << "," << acc_errs[t] << "," << acc_taus[t] << "," << acc_tau_errs[t] << ",";
+    for (int i = 0; i < J.size(); i ++) file << Hs[i][t] << "," << H_errs[i][t] << "," << H_vars[i][t] << "," << H_var_errs[i][t] << "," << H_taus[i][t] << "," << H_tau_errs[i][t] << ",";
+    file << H_sums[t] << "," << H_sum_errs[t] << "," << H_sum_vars[t] << "," << H_sum_var_errs[t] << "," << H_sum_taus[t] << "," << H_sum_tau_errs[t] << ",";
+    file << accs[t] << "," << acc_errs[t] << "," << acc_vars[t] << "," << acc_var_errs[t] << "," << acc_taus[t] << "," << acc_tau_errs[t] << ",";
     file << times[t] << "\n";
   }
   file.close();

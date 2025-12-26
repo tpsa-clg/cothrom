@@ -2,8 +2,6 @@ Current state of affairs
 - modify data saving (`MCMC_SA.cpp`) & plotting (`plot.py`) to allow for multiple sets of parameters
     - parallelise `MCMC_SA.cpp` over parameter sets instead of calculations within MCMC updates?
     - plot some Pareto fronts/phase diagrams in `plot.py` from multiple sets of results of the C++ code
-- extend `plot.py` code to plot specific heat capacities
-    - this needs proper errorbar considerations, probably by thinning data in the C++ code until it's independent and then calculating standard error of the variance (needs a lot of samples for high autocorrelation)
 - contiguity term extremely inefficient (breadth-first search instead of potential matrix multiplication?)
 - no testing of alternative compactness terms e.g. something with area and perimeter, convex hull, etc. rather than number of neighbours ([#5](https://github.com/campioru/Electoral_Redistricting/issues/5))
 - test sets vs vectors for Map::connect_, optimal_configs
@@ -43,7 +41,7 @@ This also uses OpenMP to parallelise computations - number of threads should be 
 OMP_SET_NUM_THREADS=num_threads
 ````
 
-`plot.py` - plots statistical physics observables (Hamiltonians, specific heat capacities, acceptance rates) from `MCMC_SA.cpp` output
+`plot.py` - plots statistical physics observables (Hamiltonians, specific heat capacities, autocorrelations, acceptance rates) from `MCMC_SA.cpp` output
 ````
 python3 code/plot.py "Midland counties"
 ````
