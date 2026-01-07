@@ -8,8 +8,9 @@ using std::valarray;
 #include <chrono>
 #include <omp.h>
 #include <set>
-#include "Map.h"
-#include "statfuncs.h"
+#include <cmath>
+#include "C:\Users\cmjos\Documents\2025Docs\Ele_Red_06.01.26\Electoral_Redistricting\headers\Map.h" //Changed to include full path
+#include "C:\Users\cmjos\Documents\2025Docs\Ele_Red_06.01.26\Electoral_Redistricting\headers\statfuncs.h" //Changed to include full path
 
 
 int main(int argc, char *argv[])
@@ -60,7 +61,21 @@ int main(int argc, char *argv[])
   valarray<double> J(J_vec.data(), J_vec.size());
   // incorporating Hamiltonian normalisations into coupling constants
   valarray<double> Z = { 2.*(map.total_seats() - *std::min_element(seats.begin(), seats.end())), double(map.EDs()), double(map.borders()), map.EDs()*(map.counties()-1.)/map.counties() };
-  valarray<double> J_Z = J/Z;
+  // compute J/Z safely to avoid 0/0 -> NaN
+  valarray<double> J_Z(J.size());
+  for (size_t i = 0; i < J.size(); i++)
+  {
+    if (Z[i] == 0.)
+    {
+      if (J[i] == 0.) J_Z[i] = 0.;
+      else
+      {
+        std::cerr << "Error: nonzero coupling J[" << i << "]=" << J[i] << " for zero normalisation Z[" << i << "]\n";
+        return 1;
+      }
+    }
+    else J_Z[i] = J[i] / Z[i];
+  }
 
   // getting maximum population and number of neighbours
   int max_pop = 0, max_nei = 0;
@@ -70,7 +85,24 @@ int main(int argc, char *argv[])
     if (map.nei(x).size() > max_nei) max_nei = map.nei(x).size();
   }
   // choosing the starting temperature - defined as temperature at which the highest energy increase is accepted with 99% probability
-  double T = -(valarray<double>{ 2.*max_pop/map.av_pop(), 1.+max_nei/2., double(max_nei), 1. }*J_Z).sum()/log(.99);
+  valarray<double> worst_inc = { 2.*max_pop/map.av_pop(), 1.+max_nei/2., double(max_nei), 1. };
+  double numerator = -(worst_inc * J_Z).sum();
+  double denom = log(.99);
+  double T = numerator / denom;
+  if (std::isnan(T) || std::isinf(T))
+  {
+    std::cerr << "Computed invalid initial temperature T; diagnostics:\n";
+    std::cerr << "J:";
+    for (size_t i = 0; i < J.size(); i++) std::cerr << " " << J[i];
+    std::cerr << "\nZ:";
+    for (size_t i = 0; i < Z.size(); i++) std::cerr << " " << Z[i];
+    std::cerr << "\nJ_Z:";
+    for (size_t i = 0; i < J_Z.size(); i++) std::cerr << " " << J_Z[i];
+    std::cerr << "\nworst_inc:";
+    for (size_t i = 0; i < worst_inc.size(); i++) std::cerr << " " << worst_inc[i];
+    std::cerr << "\nnumerator=" << numerator << ", denom=" << denom << "\n";
+    return 1;
+  }
   vector<double> Ts(0);
   // temperature cooling factor
   double cool = .9;
