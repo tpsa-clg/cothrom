@@ -9,8 +9,8 @@ using std::valarray;
 #include <omp.h>
 #include <set>
 #include <cmath>
-#include "C:\Users\cmjos\Documents\2025Docs\Ele_Red_06.01.26\Electoral_Redistricting\headers\Map.h" //Changed to include full path
-#include "C:\Users\cmjos\Documents\2025Docs\Ele_Red_06.01.26\Electoral_Redistricting\headers\statfuncs.h" //Changed to include full path
+#include "headers\Map.h" //Changed to include full path
+#include "headers\statfuncs.h" //Changed to include full path
 
 
 int main(int argc, char *argv[])
