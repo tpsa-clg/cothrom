@@ -32,6 +32,8 @@ python3 code/txt_for_MCMC.py Constituency "CORK EAST","CORK NORTH-CENTRAL","CORK
 
 `MCMC_SA.cpp` - uses Metropolis/heatbath algorithm to approximate optimal configuration for given area and coupling constants via simulated annealing, executable takes area name, number of seats per constituency, (non-population) coupling constants, and number of measured/discarded iterations per temperature as command line input assuming files for population and neighbours exist in the current directory, e.g.
 ````
+make MCMC_SA
+
 ./MCMC_SA "Midland counties" 2,3,3,3 2,1,3 5000,100
 ./MCMC_SA Limerick 3,4 0,0,0 1000,0
 ./MCMC_SA Cork 3,3,4,5,5 4,0.72,0 10000,1000

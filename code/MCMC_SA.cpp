@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
   std::stringstream ss(argv[2]);
   vector<int> seats(0);
   while (getline(ss, line, ',')) seats.push_back(stoi(line));
+  std::sort(seats.begin(), seats.end());
   // initialising map
   Map map(seats, populations, neighbours, counties);
   // storing the initial map configuration
@@ -58,19 +59,51 @@ int main(int argc, char *argv[])
   vector<double> J_vec({1.});
   while (getline(ss, line, ',')) J_vec.push_back(stod(line));
   valarray<double> J(J_vec.data(), J_vec.size());
+  // getting Hamiltonian normalisations (such that 0 <= H_P, H_C, H_D, H_B <= 1 and 0 <= H <= sum(Js) to make coupling tuning easier)
+  valarray<double> Z = {
+    // max(H_P): all EDs assigned to smallest-seat constituency
+    // i.e population variance of smallest constituency = abs(total seats - constituency seats) / (constituency seats) = (total seats) / (constituency seats) - 1
+    // and population variance of each other constituency = abs(-constituency seats) / (constituency seats) = 1
+    // so max(H_P) = total/smallest - 1 + (Q - 1) = total/smallest + Q - 2
+    double(map.total_seats()) / map.seat(0) + map.Q() - 2.,
+    // max(H_C): no ED is connected to another ED in the same constituency, i.e. number of disconnected parts = number of EDs
+    double(map.EDs()),
+    // max(H_D): same case as max(H_C), i.e. all neighbours of each ED are in a different constituency
+    double(map.borders()),
+    // max(H_B): each constituency's EDs evenly spread across all counties
+    // i.e. for each constituency, (number of EDs in constituency) - (number of EDs in main county) = (number of constituency's EDs in each county) * (total number of counties - 1) / (total number of counties) are not in primary county
+    // adding this for each constituency gives below
+    map.EDs() * (map.counties() - 1.) / map.counties()
+  };
   // incorporating Hamiltonian normalisations into coupling constants
-  valarray<double> Z = { 2.*(map.total_seats() - *std::min_element(seats.begin(), seats.end())), double(map.EDs()), double(map.borders()), map.EDs()*(map.counties()-1.)/map.counties() };
   valarray<double> J_Z = J/Z;
+  // fixing county boundary coupling to 0 if map is wholly within a county
+  if (map.counties() == 1)
+  {
+    J[3] = J_Z[3] = 0.;
+    std::cout << "County boundary coupling set to 0\n";
+  }
 
   // getting maximum population and number of neighbours
-  int max_pop = 0, max_nei = 0;
-  for (int x = 0; x < map.EDs(); x ++)
-  {
-    if (map.pop(x) > max_pop) max_pop = map.pop(x);
-    if (map.nei(x).size() > max_nei) max_nei = map.nei(x).size();
-  }
-  // choosing the starting temperature - defined as temperature at which the highest energy increase is accepted with 99% probability
-  double T = -(valarray<double>{ 2.*max_pop/map.av_pop(), 1.+max_nei/2., double(max_nei), 1. }*J_Z).sum()/log(.99);
+  int max_pop = *std::max_element(populations.begin(), populations.end());
+  int max_nei = 0;
+  for (int x = 0; x < map.EDs(); x ++) if (map.nei(x).size() > max_nei) max_nei = map.nei(x).size();
+  // choosing the starting temperature - defined as temperature at which the highest energy increase is accepted with at least 99% probability
+  // i.e. alpha = exp(-sum(J_i * H_i / Z_i) / T), rearrange for T and set H_i = max(H_i), alpha = 0.99
+  valarray<double> max_deltaH = {
+    // max(deltaH_P): smallest-seat constituency is already under-represented and loses the map's most populated ED to the next smallest constituency which was already over-represented
+    // i.e. abs(-max_pop/(smallest desired seats)) + abs(max_pop/(next smallest desired seats)) = max_pop/(av_pop*seats[0]) + max_pop/(av_pop*seats[1])
+    (max_pop / map.av_pop()) * (1./map.seat(0) + 1./map.seat(1)),
+    // max(deltaH_C): removing from current constituency splits all neighbours into disconnected regions, adding to new constituency creates a new disconnected region
+    // note: in most cases only floor(neighbours/2) can be made disconnected but there are some edge cases with neighbours with only one neighbour (e.g. islands) so this is an upper bound
+    max_nei + 1.,
+    // max(deltaH_D): changing constituency of highest-neighbour ED when all of its neighbours are in the same constituency
+    double(max_nei),
+    // max(deltaH_B): 0 if contained within a county, 1 otherwise (increasing number of EDs in non-primary county)
+    std::min(map.counties() - 1., 1.)
+  };
+  double alpha = .99;
+  double T = -(J_Z * max_deltaH).sum() / log(alpha);
   vector<double> Ts(0);
   // temperature cooling factor
   double cool = .9;
