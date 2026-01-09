@@ -49,6 +49,9 @@ obj_dict = {objective: {"csv_tag": tag, "normalisation": normalisation, "LaTeX":
                 [f"H{sub}" for sub in ["", "P", "C", "D", "B"]] + ["acc"],
                 [sum(couplings)] + norms + [EDs],
                 [r"{}", "P", "C", "D", "B", r"\alpha"])}
+if norms[3] == 0:
+    objectives.remove("Counties")
+    del obj_dict["Counties"]
 observables = ["Energy", "Heat Capacity", "Autocorrelation Time"]
 data_dict = {objective: {
     "Energy": {
