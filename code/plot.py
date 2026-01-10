@@ -55,16 +55,16 @@ if norms[3] == 0:
 observables = ["Energy", "Heat Capacity", "Autocorrelation Time"]
 data_dict = {objective: {
     "Energy": {
-        "estimate": MCMC_data[f"{obj_dict[objective]["csv_tag"]}"]/obj_dict[objective]["normalisation"],
-        "error": MCMC_data[f"{obj_dict[objective]["csv_tag"]}_err"]/obj_dict[objective]["normalisation"],
+        "estimate": MCMC_data[f"{obj_dict[objective]['csv_tag']}"]/obj_dict[objective]["normalisation"],
+        "error": MCMC_data[f"{obj_dict[objective]['csv_tag']}_err"]/obj_dict[objective]["normalisation"],
         "label": rf"$E_{obj_dict[objective]['LaTeX']}$" if objective != "Acceptance Rate" else rf"$\langle{obj_dict[objective]['LaTeX']}\rangle$"},
     "Heat Capacity": {
-        "estimate": MCMC_data[f"{obj_dict[objective]["csv_tag"]}_var"]*(betas/obj_dict[objective]["normalisation"])**2,
-        "error": MCMC_data[f"{obj_dict[objective]["csv_tag"]}_var_err"]*(betas/obj_dict[objective]["normalisation"])**2,
+        "estimate": MCMC_data[f"{obj_dict[objective]['csv_tag']}_var"]*(betas/obj_dict[objective]["normalisation"])**2,
+        "error": MCMC_data[f"{obj_dict[objective]['csv_tag']}_var_err"]*(betas/obj_dict[objective]["normalisation"])**2,
         "label": rf"$C_{obj_dict[objective]['LaTeX']}$" if objective != "Acceptance Rate" else rf"$\beta^2\mathrm{{Var}}({obj_dict[objective]['LaTeX']})$"},
     "Autocorrelation Time": {
-        "estimate": MCMC_data[f"{obj_dict[objective]["csv_tag"]}_tau"],
-        "error": MCMC_data[f"{obj_dict[objective]["csv_tag"]}_tau_err"],
+        "estimate": MCMC_data[f"{obj_dict[objective]['csv_tag']}_tau"],
+        "error": MCMC_data[f"{obj_dict[objective]['csv_tag']}_tau_err"],
         "label": rf"$\tau_{{H_{obj_dict[objective]['LaTeX']}}}$" if objective != "Acceptance Rate" else rf"$\tau_{obj_dict[objective]['LaTeX']}$"}}
     for objective in objectives}
 del MCMC_data
