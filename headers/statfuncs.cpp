@@ -19,7 +19,7 @@ void autocorr(const vector<double>& chain, double& tau_hat, double& tau_hat_err,
     #pragma omp parallel for reduction(+:sum)
     for (int n = 0; n < N-M; n ++) sum += (chain[n]-mean)*(chain[n+M]-mean);
     tau_hat += sum/(N-M)*fac;
-  } while (M < 5.*tau_hat);
+  } while (M < 5.*tau_hat || tau_hat <= 0.);
   tau_hat_err = tau_hat*sqrt((4.*M+2.)/N);
 }
 vector<double> thin(const vector<double>& chain, const int& tau)
