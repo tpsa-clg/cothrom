@@ -73,15 +73,27 @@ for map, geo_file in zip(maps[1:], geo_files[1:]):
   important_data.loc[:, "Neighbours"] = [neigh | {gdf.ED_GUID[j] for j, touch in enumerate(gdf.geometry.touches(gdf.geometry[i])) if touch} for i, neigh in enumerate(important_data.Neighbours)]
   print(f"{map} neighbours data merged.")
 del gdf
+
 # Manually adding neighbours to neighbourless EDs
 important_data.loc[important_data.Name=="CLARE ISLAND", "Neighbours"] = {"2ae19629-18e7-13a3-e055-000000000001"}
+important_data.loc[important_data.GUID=="2ae19629-18e7-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="CLARE ISLAND"].GUID.values[0])
 important_data.loc[important_data.Name=="BEAR", "Neighbours"] = [{"2ae19629-1f7c-13a3-e055-000000000001", "2ae19629-219c-13a3-e055-000000000001"}]
+important_data.loc[important_data.GUID=="2ae19629-1f7c-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="BEAR"].GUID.values[0])
+important_data.loc[important_data.GUID=="2ae19629-219c-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="BEAR"].GUID.values[0])
 important_data.loc[important_data.Name=="ARAN", "Neighbours"] = {"2ae19629-20a2-13a3-e055-000000000001"}
+important_data.loc[important_data.GUID=="2ae19629-20a2-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="ARAN"].GUID.values[0])
 important_data.loc[important_data.Name=="VALENCIA", "Neighbours"] = [{"2ae19629-2297-13a3-e055-000000000001", "2ae19629-2343-13a3-e055-000000000001"}]
+important_data.loc[important_data.GUID=="2ae19629-2297-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="VALENCIA"].GUID.values[0])
+important_data.loc[important_data.GUID=="2ae19629-2343-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="VALENCIA"].GUID.values[0])
 important_data.loc[important_data.Name=="LISTOWEL URBAN", "Neighbours"] = {"2ae19629-2247-13a3-e055-000000000001"}
+important_data.loc[important_data.GUID=="2ae19629-2247-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="LISTOWEL URBAN"].GUID.values[0])
 important_data.loc[important_data.Name=="GORUMNA", "Neighbours"] = {"2ae19629-236d-13a3-e055-000000000001"}
+important_data.loc[important_data.GUID=="2ae19629-236d-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="GORUMNA"].GUID.values[0])
 important_data.loc[important_data.Name=="INISHBOFIN", "Neighbours"] = {"2ae19629-20f4-13a3-e055-000000000001"}
+important_data.loc[important_data.GUID=="2ae19629-20f4-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="INISHBOFIN"].GUID.values[0])
 important_data.loc[important_data.Name=="INISHMORE", "Neighbours"] = [{"2ae19629-1fc0-13a3-e055-000000000001", "2ae19629-23a5-13a3-e055-000000000001"}]
+important_data.loc[important_data.GUID=="2ae19629-1fc0-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="INISHMORE"].GUID.values[0])
+important_data.loc[important_data.GUID=="2ae19629-23a5-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="INISHMORE"].GUID.values[0])
 # TODO check if all EDs now connected to each other
 
 # Getting "actual" county names
