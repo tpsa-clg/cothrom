@@ -60,9 +60,11 @@ important_data = gpd.read_file(geo_files[0])[["ED_GUID", "ED_ENGLISH", "COUNTY_E
 print("CSO & Tailte Éireann data merged.")
 
 
-# Obtaining extra geographical data (area, perimeter, neighbouring EDs, counties)
+# Obtaining areas and perimeters (in km² and km)
 important_data["Area"], important_data["Perimeter"] = important_data.area/(1000.**2.), important_data.length/(1000.)
 print("Area and perimeter data added.")
+
+# Finding all neighbours (union of neighbours at each resolution)
 important_data["Neighbours"] = [{important_data.GUID[j] for j, touch in enumerate(important_data.geometry.touches(geom)) if touch} for geom in important_data.geometry]
 important_data.drop(columns="geometry", inplace=True)
 print("100m neighbours data added.")
@@ -71,6 +73,18 @@ for map, geo_file in zip(maps[1:], geo_files[1:]):
   important_data.loc[:, "Neighbours"] = [neigh | {gdf.ED_GUID[j] for j, touch in enumerate(gdf.geometry.touches(gdf.geometry[i])) if touch} for i, neigh in enumerate(important_data.Neighbours)]
   print(f"{map} neighbours data merged.")
 del gdf
+# Manually adding neighbours to neighbourless EDs
+important_data.loc[important_data.Name=="CLARE ISLAND", "Neighbours"] = {"2ae19629-18e7-13a3-e055-000000000001"}
+important_data.loc[important_data.Name=="BEAR", "Neighbours"] = [{"2ae19629-1f7c-13a3-e055-000000000001", "2ae19629-219c-13a3-e055-000000000001"}]
+important_data.loc[important_data.Name=="ARAN", "Neighbours"] = {"2ae19629-20a2-13a3-e055-000000000001"}
+important_data.loc[important_data.Name=="VALENCIA", "Neighbours"] = [{"2ae19629-2297-13a3-e055-000000000001", "2ae19629-2343-13a3-e055-000000000001"}]
+important_data.loc[important_data.Name=="LISTOWEL URBAN", "Neighbours"] = {"2ae19629-2247-13a3-e055-000000000001"}
+important_data.loc[important_data.Name=="GORUMNA", "Neighbours"] = {"2ae19629-236d-13a3-e055-000000000001"}
+important_data.loc[important_data.Name=="INISHBOFIN", "Neighbours"] = {"2ae19629-20f4-13a3-e055-000000000001"}
+important_data.loc[important_data.Name=="INISHMORE", "Neighbours"] = [{"2ae19629-1fc0-13a3-e055-000000000001", "2ae19629-23a5-13a3-e055-000000000001"}]
+# TODO check if all EDs now connected to each other
+
+# Getting "actual" county names
 important_data["County"] = important_data["Administrative Region"]
 important_data.loc[important_data.County=="CORK CITY", "County"] = "CORK"
 important_data.loc[important_data.County.isin(["DUBLIN CITY", "DUN LAOGHAIRE/RATHDOWN", "FINGAL", "SOUTH DUBLIN"]), "County"] = "DUBLIN"
