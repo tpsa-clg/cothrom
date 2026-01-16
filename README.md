@@ -1,7 +1,6 @@
 Current state of affairs
 - modify data saving (`MCMC_SA.cpp`) & plotting (`plot.py`) to allow for multiple sets of parameters
     - parallelise `MCMC_SA.cpp` over parameter sets instead of calculations within MCMC updates?
-    - plot some Pareto fronts/phase diagrams in `plot.py` from multiple sets of results of the C++ code
 - contiguity term extremely inefficient (breadth-first search instead of potential matrix multiplication?)
 - no testing of alternative compactness terms e.g. something with area and perimeter, convex hull, etc. rather than number of neighbours ([#5](https://github.com/campioru/Electoral_Redistricting/issues/5))
 - test sets vs vectors for Map::connect_, optimal_configs
@@ -50,20 +49,20 @@ python3 code/plot.py "Midland counties"
 
 Plots of final map configurations, can be produced by running `map_plot.py`. These include information about couplings, discarded/recorded sweeps and population variances in the legend, taken from the `configs.csv` file in the relevant `<area_dir>`.
 ````
-python3 code\map_plot.py "<area_dir>"
+python3 code/map_plot.py "<area_dir>"
 ````
 
 The script `compute_H.cpp` prints the four Hamiltonian components of a map configuration. 
 ````
-g++ -g -O2 -std=c++17 -fopenmp code\compute_H.cpp headers\Map.cpp -o code\compute_H.exe
-code\compute_H "<area_dir>" <seat_string> 
+g++ -g -O2 -std=c++17 -fopenmp code/compute_H.cpp headers/Map.cpp -o code/compute_H.exe
+code/compute_H "<area_dir>" <seat_string> 
 ````
 The script `generate_pareto.py` runs a range of `MCMC_SA` iterations, and uses `plot.py`, `map_plot.py` and `compute_H` to generate their associated plots, and a `@<timestamp>_MCDA_input.csv` file which contains all of the necessary information for producing Pareto front plots. The tunable parameters for this program are edited within the script (find " # CONFIGURE "), where information on these parameters is provided.
 
 ````
-python3 code\generate_pareto.py
+python3 code/generate_pareto.py
 ````
 Following `generate_pareto.py`, `plot_pareto.py` can be used to produce Pareto front plots.
 ````
-python3 code\plot_pareto.py <MCDA_input_path>
+python3 code/plot_pareto.py <MCDA_input_path>
 ````
