@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import sys
 import re
-import string
 import os
 from itertools import cycle
 

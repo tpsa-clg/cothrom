@@ -203,19 +203,23 @@ def plot_final_map(
     gdf: gpd.GeoDataFrame,
     guid_order: List[str],
     assignments: List[int],
-    Q_vals: List[int],
-    info_label: str,
+    simple=False,
+    Q_vals=[],
+    info_label="",
     cvars=None,
     mean_var=None,
     max_var=None,
 ):
     # Merges `assignments` into `gdf` -> included/surround geodataframes -> compute county boundaries -> plot districts with colors and legend
+    if (not simple) and not (Q_vals or info_label):
+        raise ValueError("Q_vals and info_label must be specified if simple == False.")
+
     included, surround = prepare_assignment_gdf(gdf, guid_order, assignments)
     counties = dissolve_counties(gdf, area_dir, guid_order)
 
     fig, ax = plt.subplots(figsize=(10, 12))
 
-    if len(surround):
+    if (not simple) and len(surround):
         surround.boundary.plot(ax=ax, color="lightgrey", lw=0.6, zorder=0)
 
     cmap = plt.get_cmap("tab20")
@@ -229,23 +233,25 @@ def plot_final_map(
         sel.plot(ax=ax, facecolor=color, edgecolor="black",
                  lw=0.7, alpha=0.35, zorder=2)
 
-        label = f"C{d}: {Q_vals[d]} seats, {len(sel)} EDs"
-        if cvars is not None:
-            label += f", {cvars[d]*100:+.2f}%"
+        if not simple:
+            label = f"C{d}: {Q_vals[d]} seats, {len(sel)} EDs"
+            if cvars is not None:
+                label += f", {cvars[d]*100:+.2f}%"
 
-        district_patches.append(
-            mpatches.Patch(facecolor=color, edgecolor="black",
-                           alpha=0.35, label=label)
-        )
+            district_patches.append(
+                mpatches.Patch(facecolor=color, edgecolor="black",
+                            alpha=0.35, label=label)
+            )
 
     counties.boundary.plot(ax=ax, color="black", lw=2.8, zorder=4)
 
-    legend_handles = build_legend(Q_vals, info_label, cvars, mean_var, max_var)
-    legend_handles += district_patches
-    ax.legend(handles=legend_handles, loc="lower left", fontsize="small")
+    if not simple:
+        legend_handles = build_legend(Q_vals, info_label, cvars, mean_var, max_var)
+        legend_handles += district_patches
+        ax.legend(handles=legend_handles, loc="lower left", fontsize="small")
 
     minx, miny, maxx, maxy = included.total_bounds
-    pad_x = (maxx - minx) * 0.18
+    pad_x = (maxx - minx) * (0.08 if simple else 0.18)
     pad_y = (maxy - miny) * 0.08
     ax.set_xlim(minx - pad_x, maxx + pad_x)
     ax.set_ylim(miny - pad_y, maxy + pad_y)
@@ -254,50 +260,8 @@ def plot_final_map(
     ax.axis("off")
     plt.tight_layout()
 
-    out = os.path.join(area_dir, f"final_map_{i}.pdf")
-    plt.savefig(out, dpi=300, bbox_inches="tight")
-    plt.close(fig)
-
-    print(f"Wrote {out}")
-
-
-def plot_final_map_simple(
-    i: int,
-    area_dir: str,
-    gdf: gpd.GeoDataFrame,
-    guid_order: List[str],
-    assignments: List[int],
-): # No legend, no surround
-
-    included, _ = prepare_assignment_gdf(gdf, guid_order, assignments)
-    counties = dissolve_counties(gdf, area_dir, guid_order)
-
-    fig, ax = plt.subplots(figsize=(10, 12))
-    cmap = plt.get_cmap("tab20")
-
-    ds = sorted(included["district"].astype(int).unique())
-    norm = plt.Normalize(min(ds), max(ds))
-
-    for d in ds:
-        included[included["district"] == d].plot(
-            ax=ax,
-            facecolor=cmap(norm(d)),
-            edgecolor="black",
-            lw=0.7,
-            alpha=0.35
-        )
-
-    counties.boundary.plot(ax=ax, color="black", lw=2.8)
-    minx, miny, maxx, maxy = included.total_bounds
-    pad = 0.08
-    ax.set_xlim(minx - pad*(maxx-minx), maxx + pad*(maxx-minx))
-    ax.set_ylim(miny - pad*(maxy-miny), maxy + pad*(maxy-miny))
-
-    ax.set_aspect("equal")
-    ax.axis("off")
-    plt.tight_layout()
-
-    out = os.path.join(area_dir, f"final_map_simple_{i}.pdf")
+    file_suffix = "simple" if simple else ""
+    out = os.path.join(area_dir, f"final_map_{file_suffix}_{i}.pdf")
     plt.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
@@ -308,7 +272,7 @@ def plot_final_map_simple(
 
 def main(area_name: str):
     data_dir, area_dir = get_paths(area_name)
-    gdf_geo, guid_order = read_guid_list(
+    _, guid_order = read_guid_list(
         area_dir, os.path.join(data_dir, "100m.geojson")
     )
 
@@ -344,7 +308,7 @@ def main(area_name: str):
             float(np.abs(cvars).mean()),
             float(np.abs(cvars).max())
         )
-        plot_final_map_simple(i, area_dir, gdf_full, guid_order, cfg)
+        plot_final_map(i, area_dir, gdf_full, guid_order, cfg, simple=True)
 
 
 if __name__ == "__main__":
