@@ -212,13 +212,18 @@ int main(int argc, char *argv[])
   for (int j = 0; j < J.size(); j ++) file << "," << J[j];
   file << "\nZ";
   for (int z = 0; z < Z.size(); z ++) file << "," << Z[z];
-  // initial and optimal configurations
+  // initial (randomised) configuration
   file << "\ninitial\n" << init.front();
   for (int x = 1; x < map.EDs(); x ++) file << "," << init[x];
-  file << "\noptimals";
+  // optimal configurations - total Hamiltonian for all, individual Hamiltonians for each
+  file << "\noptimals," << H_min;
   for (vector<int> config : optimal_configs)
   {
-    file << "\n" << config[0];
+    map.change_config(config);
+    valarray<double> H = map.H();
+    file << "\n" << H[0];
+    for (int i = 1; i < J.size(); i ++) file << "," << H[i];
+    file << "\n" << config.front();
     for (int x = 1; x < config.size(); x ++) file << "," << config[x]; 
   }
 

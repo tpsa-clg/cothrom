@@ -32,6 +32,7 @@ with open(config_file) as f:
     optimal_config = f.readline().split(",")
     while optimal_config[0] != "T":
         degeneracy += 1
+        optimal_config = f.readline().split(",")
         config_data[f"Optimal {degeneracy}"] = [int(q.replace("\n", "")) for q in optimal_config]
         optimal_config = f.readline().split(",")
 for state in ["Initial"] + [f"Optimal {d}" for d in range(1, degeneracy+1)]:
@@ -39,7 +40,7 @@ for state in ["Initial"] + [f"Optimal {d}" for d in range(1, degeneracy+1)]:
 del config_data
 
 # Loading and re-organising MCMCSA data
-MCMC_data = pd.read_csv(config_file, skiprows=7+degeneracy)
+MCMC_data = pd.read_csv(config_file, skiprows=7+2*degeneracy)
 betas = np.array(1. / MCMC_data["T"])
 runtimes = MCMC_data["time"]
 objectives = ["Combination", "Population", "Contiguity", "Compactness", "Counties", "Acceptance Rate"]

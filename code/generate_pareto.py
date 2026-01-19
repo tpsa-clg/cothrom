@@ -86,7 +86,9 @@ def write_actual_configs_csv(
         f.write("Z,0,0,0\n")
         f.write("initial\n")
         f.write(",".join(map(str, assignments)) + "\n")
-        f.write("optimals\n")
+        # TODO replace placeholder Hamiltonians with actual values
+        f.write("optimals,0\n")
+        f.write("0,0,0,0\n")
         f.write(",".join(map(str, assignments)) + "\n")
 
     print(f"Wrote ACTUAL configs.csv to {cfg_path}")
@@ -204,7 +206,6 @@ def run_all_MCMC_SA(
 
 def collect_H_vectors(
     runs: List[str],
-    seat_config: List[int],
     data_dir: str = "data",
     output_file: str = f"@{dt_short}_MCDA_input.csv",
 ):
@@ -214,65 +215,16 @@ def collect_H_vectors(
 
     for run_name in runs:
         cfg_path = os.path.join(data_dir, run_name, "configs.csv")
-        area_dir = os.path.join(data_dir, run_name)
+
+        # Get Hamiltonians for the first optimal state
+        # TODO generalise this for multiple optimal states
+        with open(cfg_path) as f:
+            while(f.readline().replace("\n", "") != "optimals"):
+                pass
+            result = f.readline().replace("\n","").split(",")
         
-        if not os.path.exists(cfg_path):
-            print(f"Missing configs.csv for run {run_name}, skipping")
-            continue
-
-        # Run compute_H
-        compute_exe = os.path.join("code", "compute_H.exe")
-        if not os.path.exists(compute_exe):
-            compute_exe = os.path.join("code", "compute_H")
-
-        seat_string = ",".join(map(str, seat_config))
-        cmd = [
-            compute_exe,
-            run_name,          # pass the run folder name (area) so compute_H looks under data/<run_name>/
-            seat_string, 
-        ]
-
-        # Check that area files exist before invoking compute_H
-        pop_fp = os.path.join(area_dir, "Population.txt")
-        nei_fp = os.path.join(area_dir, "Neighbours.txt")
-        cou_fp = os.path.join(area_dir, "County.txt")
-        if not (os.path.exists(pop_fp) and os.path.exists(nei_fp) and os.path.exists(cou_fp)):
-            print(f"Missing area files for run {run_name}: {pop_fp}, {nei_fp}, {cou_fp}")
-            continue
-        
-        print("About to run compute_H with:")
-        print("area_dir/run_name:", run_name)
-        print("seat_config:", seat_string)
-        print("cfg_path:", cfg_path)
-
-
-        try:
-            result = subprocess.run(
-                cmd,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            print("compute_H stdout:", result.stdout)
-            print("compute_H stderr:", result.stderr)
-
-            if result.stderr:
-                print(result.stderr)
-
-
-        except subprocess.CalledProcessError as e:
-            print(f"compute_H failed for {run_name}")
-            print(e.stderr)
-            continue
-
         # Parse output
-        H_vals = {"run_name": run_name}
-
-        for line in result.stdout.strip().splitlines():
-            if "," not in line:
-                continue
-            key, val = line.split(",", 1)
-            H_vals[key.strip()] = float(val)
+        H_vals = {"run_name": run_name} | {H_str: float(H_val) for H_str, H_val in zip(["HP", "HC", "HD", "HB"], result)}
 
         # Ensure all components exist
         if not all(k in H_vals for k in ("HP", "HC", "HD", "HB")):
@@ -335,4 +287,4 @@ run_names= run_all_MCMC_SA(area_str, recorded, discarded, seat_config, d_min, d_
 run_names = [r for r in run_names if r is not None]
 
 run_names.insert(0, actual_name)  # ---ACTUAL
-collect_H_vectors(run_names, seat_config)
+collect_H_vectors(run_names)

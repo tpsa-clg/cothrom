@@ -52,12 +52,7 @@ Plots of final map configurations, can be produced by running `map_plot.py`. The
 python3 code/map_plot.py "<area_dir>"
 ````
 
-The script `compute_H.cpp` prints the four Hamiltonian components of a map configuration. 
-````
-g++ -g -O2 -std=c++17 -fopenmp code/compute_H.cpp headers/Map.cpp -o code/compute_H.exe
-code/compute_H "<area_dir>" <seat_string> 
-````
-The script `generate_pareto.py` runs a range of `MCMC_SA` iterations, and uses `plot.py`, `map_plot.py` and `compute_H` to generate their associated plots, and a `@<timestamp>_MCDA_input.csv` file which contains all of the necessary information for producing Pareto front plots. The tunable parameters for this program are edited within the script (find " # CONFIGURE "), where information on these parameters is provided.
+The script `generate_pareto.py` runs a range of `MCMC_SA` iterations, and uses `plot.py` and `map_plot.py` to generate their associated plots, and a `@<timestamp>_MCDA_input.csv` file which contains all of the necessary information for producing Pareto front plots. The tunable parameters for this program are edited within the script (find " # CONFIGURE "), where information on these parameters is provided.
 
 ````
 python3 code/generate_pareto.py
