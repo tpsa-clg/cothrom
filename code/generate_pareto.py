@@ -5,6 +5,7 @@ import csv
 import os
 from datetime import datetime
 import pandas as pd
+import numpy as np
 
 # datetime object containing current date and time
 now = datetime.now()
@@ -21,79 +22,85 @@ def prepare_actual_configuration(area_name: str, county_list: List[str]):
         area_name,
     ], check=True)
 
+def Hamiltonians_from_config(
+    pops: List[int],
+    neighbours: List[List[int]],
+    seat_list: List[int],
+    assignments: List[int]
+):
+    # Calculate each Hamiltonian for a given configuration, assuming contiguity and within county boundaries
+    # pops: list of ED populations
+    # neighbours: list of lists of ED neighbours
+    # seat_list: list of constituency seats
+    # assignments: list of ED constituency assignments
+    # TODO calculate HC, HB
+    from map_plot import constituency_variances
+
+    abs_variances = np.abs(constituency_variances(pops, assignments, seat_list))
+    HP = abs_variances.sum()
+
+    HD = 0
+    for x, qx in enumerate(assignments):
+        for y in neighbours[x]:
+            qy = assignments[y]
+            if qx != qy:
+                HD += 1
+    HD /= 2
+
+    return [HP, 0, HD, 0]
+
 def write_actual_configs_csv(
     area_dir: str,
-    seat_list: list[int],
+    seat_list: List[int],
     ed_data_csv: str,
 ):
 
     # Load GUID ordering
     guid_path = os.path.join(area_dir, "GUID.txt")
     guids = [g.strip() for g in open(guid_path)]
-    guid_index = {g: i for i, g in enumerate(guids)}
 
-    # Load ED data
-
+    # Load ED data, sorted by GUID list
     df = pd.read_csv(ed_data_csv)
-    df = df[df["GUID"].isin(guid_index)]
+    df = df[df["GUID"].isin(guids)].sort_values(guids)
 
-    # Group EDs by constituency
-    groups = {}
-    for _, r in df.iterrows():
-        groups.setdefault(r["Constituency"], []).append(r["GUID"])
-
-    if len(groups) != len(seat_list):
+    # Get constituency names
+    cnames = np.array(list(set(df.Constituency.values)))
+    if len(cnames) != len(seat_list):
         raise RuntimeError(
-            f"{len(groups)} constituencies but {len(seat_list)} seat counts"
+            f"{len(cnames)} constituencies but {len(seat_list)} seat counts"
         )
+    
+    # Order seat list by number of seats and constituencies by population
+    seat_list = sorted(seat_list)
+    cpops = np.array([sum(df[df.Constituency==cname].Population.values) for cname in cnames])
+    cnames = cnames[cpops.argsort()]
 
-    # Population lookup
-    pop_by_guid = dict(zip(df["GUID"], df["Population"]))
+    # Replacing consitutency names with index in ordered seat list
+    for i, cname in enumerate(cnames):
+        df.loc[df.Constituency==cname, "Constituency"] = i
+    assignments = df.Constituency.values
 
-    const_stats = []
-    for cname, eds in groups.items():
-        total_pop = sum(pop_by_guid[g] for g in eds)
-        const_stats.append((cname, total_pop))
-
-    # smallest population -> index 0 -> smallest seat count
-    const_stats.sort(key=lambda x: x[1])
-
-    if len(const_stats) != len(seat_list):
-        raise RuntimeError(
-            f"{len(const_stats)} constituencies but {len(seat_list)} seat counts"
-        )
-
-    constituency_index = {
-        cname: i for i, (cname, _) in enumerate(const_stats)
-    }
-
-    assignments = [None] * len(guids)
-    for cname, eds in groups.items():
-        idx = constituency_index[cname]
-        for g in eds:
-            assignments[guid_index[g]] = idx
-
-    if any(a is None for a in assignments):
-        raise RuntimeError("Unassigned EDs in actual configuration")
+    # Replacing GUIDs in neighbours column with ED index
+    df.loc[:, "Neighbours"] = np.array([df.index[df["GUID"].isin(i)].tolist() for i in df.Neighbours.values], dtype=object)
+    
+    # Calculate Hamiltonians for actual config
+    actual_Hamiltonians = Hamiltonians_from_config(df.Population.values, df.Neighbours.values, seat_list, assignments)
 
     # Write minimal configs.csv for actual config
-
     cfg_path = os.path.join(area_dir, "configs.csv")
     with open(cfg_path, "w", encoding="utf-8") as f:
         f.write("Q," + ",".join(map(str, seat_list)) + "\n")
         f.write("N,0,0\n")
         f.write("J,0,0,0,0\n")
-        f.write("Z,0,0,0\n")
+        # # TODO get correct normalisations (doesn't matter while we're not comparing overall Hamiltonians)
+        f.write("Z,0,0,0,0\n")
         f.write("initial\n")
         f.write(",".join(map(str, assignments)) + "\n")
-        # TODO replace placeholder Hamiltonians with actual values
         f.write("optimals,0\n")
-        f.write("0,0,0,0\n")
+        f.write(",".join(map(str, actual_Hamiltonians)) + "\n")
         f.write(",".join(map(str, assignments)) + "\n")
 
     print(f"Wrote ACTUAL configs.csv to {cfg_path}")
-
-from typing import List
 
 def seat_counts(seats: List[int]) -> str: # Return string of counts of 3-,4-,5-seaters
     return "{}-{}-{}".format(
@@ -202,8 +209,7 @@ def run_all_MCMC_SA(
 
 
 
-#  Compute and collect H-vectors for a list of MCMC_SA runs.
-
+#  Collect H-vectors for a list of MCMC_SA runs.
 def collect_H_vectors(
     runs: List[str],
     data_dir: str = "data",
@@ -257,21 +263,21 @@ def collect_H_vectors(
 # - All of the below lines marked with "---ACTUAL" relate to preparing and plotting the actual configuration, and need only be run once per area.
 #------------------------------------------------------------   
 
-ed_data = r"data\ED_data.csv"
-area_str= ["DUBLIN"] # Allcaps county name(s)
-recorded= 1000
-discarded=600
-seat_config= [3,3,3,4,4,4,4,4,5,5,5,5] # The seat config to be used for the MCMC_SA runs
+ed_data = os.path.join("data", "ED_data.csv")
+area_str = ["DUBLIN"] # Allcaps county name(s)
+recorded = 1000
+discarded = 600
+seat_config = [3,3,3,4,4,4,4,4,5,5,5,5] # The seat config to be used for the MCMC_SA runs
 actual_seat_config = [3,3,3,4,4,4,4,4,5,5,5,5]  # This is [3,3,4,5,5] for Cork and [3,3,3,4,4,4,4,4,5,5,5,5] for Dublin  # ---ACTUAL
-l_min=0.0 # Relative strength of compactness coupling. Thus l+k<1, and 1-(l+k) is the relative strength of population coupling.
-l_max=0.4
-n_runs= 3
-k=0.45 # Relative strength of contiguity coupling
+l_min = 0.0 # Relative strength of compactness coupling. Thus l+k<1, and 1-(l+k) is the relative strength of population coupling.
+l_max = 0.4
+n_runs = 3
+k = 0.45 # Relative strength of contiguity coupling
 
 #------------------------------------------------------------
 
-d_min= l_min*(1+ (k/(1+k)))*(1/(1-l_min*(1+ k/(1-k)))) # Strength of compactness coupling
-d_max= l_max*(1+ (k/(1+k)))*(1/(1-l_max*(1+ k/(1-k))))
+d_min = l_min*(1+ (k/(1+k)))*(1/(1-l_min*(1+ k/(1-k)))) # Strength of compactness coupling
+d_max = l_max*(1+ (k/(1+k)))*(1/(1-l_max*(1+ k/(1-k))))
 county_str = ",".join(area_str)
 actual_name = (f"@{dt_short}_"+f"{county_str}_actual")  # ---ACTUAL
 actual_dir = os.path.join("data", actual_name)  # ---ACTUAL
@@ -283,8 +289,8 @@ prepare_actual_configuration(actual_name, area_str)  # ---ACTUAL
 write_actual_configs_csv(actual_dir, actual_seat_config, ed_data)  # ---ACTUAL
 subprocess.run(ac_map_cmd, check=True)  # ---ACTUAL
 
-run_names= run_all_MCMC_SA(area_str, recorded, discarded, seat_config, d_min, d_max, n_runs, k)
+run_names = run_all_MCMC_SA(area_str, recorded, discarded, seat_config, d_min, d_max, n_runs, k)
 run_names = [r for r in run_names if r is not None]
 
-run_names.insert(0, actual_name)  # ---ACTUAL
+run_names = [actual_name] + run_names  # ---ACTUAL
 collect_H_vectors(run_names)
