@@ -1,6 +1,6 @@
 import pandas as pd
 import geopandas as gpd
-import glob
+from glob import glob
 import requests
 import os
 
@@ -8,7 +8,7 @@ data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir
 os.makedirs(data_dir, exist_ok=True)
 
 # Downloading necessary files if not in data directory
-pop_file = glob.glob(os.path.join(data_dir, "F1060*.csv"))
+pop_file = glob(os.path.join(data_dir, "F1060*.csv"))
 if pop_file:
   pop_file = pop_file[0]
 else:
@@ -37,7 +37,7 @@ map_dict = {resolution: {
       "deba50580cc24e4eb9cf50eb3cfebf69/geojson?layers=1"
       ])}
 for resolution in resolutions:
-  geo_file = glob.glob(os.path.join(data_dir, f"*{resolution}*.geojson"))
+  geo_file = glob(os.path.join(data_dir, f"*{resolution}*.geojson"))
   if geo_file:
     map_dict[resolution]["file"] = geo_file[0]
   else:
@@ -50,17 +50,17 @@ for resolution in resolutions:
       f.write(r.content)
     del r
     print(f"Tailte Éireann {resolution} ED geography downloaded.")
-counties_file = glob.glob(os.path.join(data_dir, "Counties*.geojson"))
+counties_file = glob(os.path.join(data_dir, "Counties*.geojson"))
 if not counties_file:
   print(
     "Tailte Éireann county geography not in data directory. Downloading from "
     "https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m1..."
     )
-  r = requests.get(
+  try:
+    r = requests.get(
     "https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0"
     )
-  r.close()
-  try:
+    r.close()
     r.raise_for_status()
     with open(os.path.join(data_dir, f"Counties.geojson"), "wb") as f:
       f.write(r.content)
@@ -69,14 +69,14 @@ if not counties_file:
   except Exception as e:
     print(
       "Tailte Éireann county geography not downloaded. "
-      "County boundaries in map_plot.py will be plotted using (inaccurate) ED boundaries."
+      "This is not used in this execution, but is required for map_plot.py."
       )
     print("Error message:", e)
 
 
 # Reading Tailte Éireann data (name, county, LEA, geography)
-geo_df = gpd.read_file(map_dict[resolutions[0]]["file"], columns=[
-  "ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"])
+geo_df = gpd.read_file(map_dict[resolutions[0]]["file"])
+geo_df = geo_df[["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]]
 geo_df.rename(columns={"ED_GUID": "GUID",
                        "ED_ENGLISH": "Name",
                        "COUNTY_ENGLISH": "Administrative Region",
@@ -105,11 +105,13 @@ important_data["Neighbours"] = [{
 important_data.drop(columns="geometry", inplace=True)
 print("100m neighbours data added.")
 for resolution in resolutions[1:]:
-  gdf = gpd.read_file(map_dict[resolution]["file"], columns=["ED_GUID", "geometry"])
-  gdf.sort_values("ED_GUID", inplace=True)
+  gdf = gpd.read_file(map_dict[resolution]["file"])
+  gdf = gdf[["ED_GUID", "geometry"]]
+  gdf.rename(columns={"ED_GUID": "GUID"})
+  gdf.sort_values("GUID", inplace=True)
   gdf.reset_index(drop=True, inplace=True)
   important_data.loc[:, "Neighbours"] = [neigh | {
-    gdf.ED_GUID[y] for y, touch in enumerate(gdf.geometry.touches(gdf.geometry[x])) if touch
+    gdf.GUID[y] for y, touch in enumerate(gdf.geometry.touches(gdf.geometry[x])) if touch
     } for x, neigh in enumerate(important_data.Neighbours)]
   print(f"{resolution} neighbours data merged.")
 del gdf

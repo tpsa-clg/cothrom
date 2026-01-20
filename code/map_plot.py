@@ -1,6 +1,8 @@
 from typing import List, Tuple
 import sys
 import os
+from glob import glob
+import requests
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -135,34 +137,6 @@ def prepare_assignment_gdf(
     return included, surround
 
 
-def dissolve_counties(
-    gdf: gpd.GeoDataFrame,
-    area_dir: str,
-    guid_order: List[str],
-) -> gpd.GeoDataFrame: # Reads `County.txt` for County IDs per GUID, merges with `gdf`, dissolves geometries by county and returns a GeoDataFrame of county polygons
-    county_fp = os.path.join(area_dir, "County.txt")
-    county_vals = np.loadtxt(county_fp, dtype=int)
-
-    county_df = pd.DataFrame({
-        "GUID": guid_order[:len(county_vals)],
-        "CountyID": county_vals
-    })
-
-    merged = gdf.merge(county_df, on="GUID", how="left")
-
-    counties = (
-        merged
-        .dropna(subset=["CountyID"])
-        .dissolve(by="CountyID")
-        .geometry
-        .buffer(0)
-        .reset_index(drop=True)
-    )
-
-    return gpd.GeoDataFrame(geometry=counties, crs=gdf.crs)
-
-
-
 def constituency_variances(pops, assignments, seats): # Computes relative population variance per constituency
     pops = np.asarray(pops)
     assignments = np.asarray(assignments)
@@ -201,6 +175,7 @@ def plot_final_map(
     i: int,
     area_dir: str,
     gdf: gpd.GeoDataFrame,
+    county_geometries: gpd.GeoSeries,
     guid_order: List[str],
     assignments: List[int],
     simple=False,
@@ -210,12 +185,11 @@ def plot_final_map(
     mean_var=None,
     max_var=None,
 ):
-    # Merges `assignments` into `gdf` -> included/surround geodataframes -> compute county boundaries -> plot districts with colors and legend
-    if (not simple) and not (Q_vals or info_label):
+    # Merges `assignments` into `gdf` -> included/surround geodataframes -> plot districts and county boundaries with colors and legend
+    if (not simple) and not (Q_vals and info_label):
         raise ValueError("Q_vals and info_label must be specified if simple == False.")
 
     included, surround = prepare_assignment_gdf(gdf, guid_order, assignments)
-    counties = dissolve_counties(gdf, area_dir, guid_order)
 
     fig, ax = plt.subplots(figsize=(10, 12))
 
@@ -243,7 +217,7 @@ def plot_final_map(
                             alpha=0.35, label=label)
             )
 
-    counties.boundary.plot(ax=ax, color="black", lw=2.8, zorder=4)
+    county_geometries.boundary.plot(ax=ax, color="black", lw=2.8, zorder=4)
 
     if not simple:
         legend_handles = build_legend(Q_vals, info_label, cvars, mean_var, max_var)
@@ -299,6 +273,27 @@ def main(area_name: str):
 
     gdf_full = load_gdf(data_dir)
 
+    county_file = glob(os.path.join(data_dir, "Counties*.geojson"))
+    if county_file:
+        county_file = county_file[0]
+    else:
+        print(
+            "Tailte Éireann county geography not in data directory. Downloading from "
+            "https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m1..."
+            )
+        r = requests.get(
+        "https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0"
+        )
+        r.close()
+        r.raise_for_status()
+        county_file = os.path.join(data_dir, f"Counties.geojson")
+        with open(county_file, "wb") as f:
+            f.write(r.content)
+        del r
+        print("Tailte Éireann county geography downloaded.")
+    county_geometries = gpd.read_file(county_file)
+    county_geometries = county_geometries.geometry
+
     for i, cfg in enumerate(final_assignments):
         cvars = constituency_variances(pops, cfg, Q_vals)
         plot_final_map(
@@ -308,7 +303,7 @@ def main(area_name: str):
             float(np.abs(cvars).mean()),
             float(np.abs(cvars).max())
         )
-        plot_final_map(i, area_dir, gdf_full, guid_order, cfg, simple=True)
+        plot_final_map(i, area_dir, gdf_full, county_geometries, guid_order, cfg, simple=True)
 
 
 if __name__ == "__main__":
