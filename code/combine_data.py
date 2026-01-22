@@ -58,8 +58,8 @@ if not counties_file:
     )
   try:
     r = requests.get(
-    "https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0"
-    )
+      "https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0"
+      )
     r.close()
     r.raise_for_status()
     with open(os.path.join(data_dir, f"Counties.geojson"), "wb") as f:

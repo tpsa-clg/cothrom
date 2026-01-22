@@ -297,13 +297,13 @@ def main(area_name: str):
     for i, cfg in enumerate(final_assignments):
         cvars = constituency_variances(pops, cfg, Q_vals)
         plot_final_map(
-            i, area_dir, gdf_full, guid_order, cfg,
-            Q_vals, info_label,
-            cvars,
+            i, area_dir, gdf_full, county_geometries,
+            guid_order, cfg, Q_vals, info_label, cvars,
             float(np.abs(cvars).mean()),
             float(np.abs(cvars).max())
         )
-        plot_final_map(i, area_dir, gdf_full, county_geometries, guid_order, cfg, simple=True)
+        plot_final_map(i, area_dir, gdf_full, county_geometries,
+                       guid_order, cfg, simple=True)
 
 
 if __name__ == "__main__":
