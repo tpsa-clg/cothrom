@@ -1321,6 +1321,28 @@ important_data.loc[(important_data["Administrative Region"]=="WEXFORD") & (impor
 important_data.loc[(important_data["Administrative Region"]=="WICKLOW") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WICKLOW"
 print("Complement constituency data added.")
 
+# Adding missing neighbour data identified using libpysal
+missing_neighbour_data = {
+  '2ae19629-1912-13a3-e055-000000000001': '2ae19629-192a-13a3-e055-000000000001',
+  '2ae19629-192a-13a3-e055-000000000001': '2ae19629-1912-13a3-e055-000000000001',
+  '2ae19629-1ce8-13a3-e055-000000000001': '2ae19629-1d39-13a3-e055-000000000001',
+  '2ae19629-1d39-13a3-e055-000000000001': '2ae19629-1ce8-13a3-e055-000000000001',
+  '2ae19629-1e43-13a3-e055-000000000001': '2ae19629-1e74-13a3-e055-000000000001',
+  '2ae19629-1e74-13a3-e055-000000000001': '2ae19629-1e43-13a3-e055-000000000001',
+  '2ae19629-1f74-13a3-e055-000000000001': '6a372d28-f5c8-4acc-b237-4f7bb4a9ad53',
+  '2ae19629-1f77-13a3-e055-000000000001': '2ae19629-1f78-13a3-e055-000000000001',
+  '2ae19629-1f78-13a3-e055-000000000001': '2ae19629-1f77-13a3-e055-000000000001',
+  '2ae19629-2065-13a3-e055-000000000001': '2ae19629-20b7-13a3-e055-000000000001',
+  '2ae19629-206e-13a3-e055-000000000001': '2ae19629-20d3-13a3-e055-000000000001',
+  '2ae19629-20b7-13a3-e055-000000000001': '2ae19629-2065-13a3-e055-000000000001',
+  '2ae19629-20d3-13a3-e055-000000000001': '2ae19629-206e-13a3-e055-000000000001',
+  '316a25a0-f7b6-4d01-b188-5efd7bd804c5': '7c85cece-22eb-4ebb-8d1f-9c0f734eaea8',
+  '6a372d28-f5c8-4acc-b237-4f7bb4a9ad53': '2ae19629-1f74-13a3-e055-000000000001',
+  '7c85cece-22eb-4ebb-8d1f-9c0f734eaea8': '316a25a0-f7b6-4d01-b188-5efd7bd804c5'
+  }
+
+for guid, neighbour_guid in missing_neighbour_data.items():
+  important_data.loc[important_data.GUID==guid, "Neighbours"] = important_data.loc[important_data.GUID==guid, "Neighbours"].apply(lambda x: x | {neighbour_guid})
 
 # Saving to .csv
 important_data.to_csv(os.path.join(data_dir, "ED_data.csv"), columns=["GUID", "Name", "County", "Administrative Region", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
