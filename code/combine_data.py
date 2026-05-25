@@ -107,7 +107,7 @@ print("100m neighbours data added.")
 for resolution in resolutions[1:]:
   gdf = gpd.read_file(map_dict[resolution]["file"])
   gdf = gdf[["ED_GUID", "geometry"]]
-  gdf.rename(columns={"ED_GUID": "GUID"})
+  gdf.rename(columns={"ED_GUID": "GUID"}, inplace=True)
   gdf.sort_values("GUID", inplace=True)
   gdf.reset_index(drop=True, inplace=True)
   important_data.loc[:, "Neighbours"] = [neigh | {
@@ -1325,3 +1325,55 @@ print("Complement constituency data added.")
 # Saving to .csv
 important_data.to_csv(os.path.join(data_dir, "ED_data.csv"), columns=["GUID", "Name", "County", "Administrative Region", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
 print("Data saved to ED_data.csv.")
+
+
+# Making and saving dataframe for constituency data (seats per constituency)
+# TODO extend this further - get geojson for constituency boundaries and repeat above
+constituency_data = pd.DataFrame([
+  ("CARLOW-KILKENNY", 5),
+  ("CAVAN-MONAGHAN", 5),
+  ("CLARE", 4),
+  ("CORK EAST", 4),
+  ("CORK NORTH-CENTRAL", 5),
+  ("CORK NORTH-WEST", 3),
+  ("CORK SOUTH-CENTRAL", 5),
+  ("CORK SOUTH-WEST", 3),
+  ("DONEGAL", 5),
+  ("DUBLIN BAY NORTH", 5),
+  ("DUBLIN BAY SOUTH", 4),
+  ("DUBLIN CENTRAL", 4),
+  ("DUBLIN FINGAL EAST", 3),
+  ("DUBLIN FINGAL WEST", 3),
+  ("DUBLIN MID-WEST", 5),
+  ("DUBLIN NORTH-WEST", 3),
+  ("DUBLIN RATHDOWN", 4),
+  ("DUBLIN SOUTH-CENTRAL", 4),
+  ("DUBLIN SOUTH-WEST", 5),
+  ("DUBLIN WEST", 5),
+  ("DÚN LAOGHAIRE", 4),
+  ("GALWAY EAST", 4),
+  ("GALWAY WEST", 5),
+  ("KERRY", 5),
+  ("KILDARE NORTH", 5),
+  ("KILDARE SOUTH", 4),
+  ("LAOIS", 3),
+  ("LIMERICK CITY", 4),
+  ("LIMERICK COUNTY", 3),
+  ("LONGFORD-WESTMEATH", 5),
+  ("LOUTH", 5),
+  ("MAYO", 5),
+  ("MEATH EAST", 4),
+  ("MEATH WEST", 3),
+  ("OFFALY", 3),
+  ("ROSCOMMON-GALWAY", 3),
+  ("SLIGO-LEITRIM", 4),
+  ("TIPPERARY NORTH", 3),
+  ("TIPPERARY SOUTH", 3),
+  ("WATERFORD", 4),
+  ("WEXFORD", 4),
+  ("WICKLOW", 4),
+  ("WICKLOW-WEXFORD", 3)
+  ], columns=["Constituency", "Seats"])
+
+constituency_data.to_csv(os.path.join(data_dir, "Constituency_data.csv"), index=False)
+print("Data saved to Constituency_data.csv.")
