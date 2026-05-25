@@ -6,7 +6,6 @@
 #include <valarray>
 using std::valarray;
 #include <chrono>
-#include <omp.h>
 #include <set>
 #include "Map.h"
 #include "statfuncs.h"
@@ -221,7 +220,7 @@ int main(int argc, char *argv[])
   {
     map.change_config(config);
     valarray<double> H = map.H();
-    file << "\n" << H[0];
+    file << "\nH," << H[0];
     for (int i = 1; i < J.size(); i ++) file << "," << H[i];
     file << "\n" << config.front();
     for (int x = 1; x < config.size(); x ++) file << "," << config[x]; 

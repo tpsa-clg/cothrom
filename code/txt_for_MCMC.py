@@ -46,10 +46,7 @@ constituency_list, seat_list = constituency_df.Constituency, constituency_df.Sea
 area_df["Configuration"] = -1
 for q, constituency in enumerate(constituency_list):
   area_df.loc[area_df.Constituency==constituency, "Configuration"] = q
-seats, constituencies = sum(seat_list), len(seat_list)
-run_dir = os.path.join(area_dir, f"{seats}_{constituencies}")
-os.makedirs(run_dir, exist_ok=True)
-with open(os.path.join(run_dir, "actual.csv"), "w") as f:
+with open(os.path.join(area_dir, "actual.csv"), "w") as f:
   f.write(f"Q,{','.join([str(seat) for seat in seat_list])}\n")
   f.write(f"{','.join([str(q) for q in area_df["Configuration"]])}\n")
 

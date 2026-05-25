@@ -97,7 +97,7 @@ def write_actual_configs_csv(
         f.write("initial\n")
         f.write(",".join(map(str, assignments)) + "\n")
         f.write("optimals,0\n")
-        f.write(",".join(map(str, actual_Hamiltonians)) + "\n")
+        f.write("H," + ",".join(map(str, actual_Hamiltonians)) + "\n")
         f.write(",".join(map(str, assignments)) + "\n")
 
     print(f"Wrote ACTUAL configs.csv to {cfg_path}")

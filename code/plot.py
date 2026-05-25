@@ -19,7 +19,6 @@ EDs = len(GUIDs)
 config_data = config_data[config_data.GUID.isin(GUIDs)].set_index("GUID").reindex(index=GUIDs).reset_index()
 
 # Reading & plotting initial & final configurations
-degeneracy = 0
 config_file = os.path.join(area_dir, "configs.csv")
 with open(config_file) as f:
     seats = [int(q.replace("\n", "")) for q in f.readline().split(",")[1:]]
@@ -29,6 +28,7 @@ with open(config_file) as f:
     next(f)
     config_data["Initial"] = [int(q.replace("\n", "")) for q in f.readline().split(",")]
     next(f)
+    degeneracy = 0
     optimal_config = f.readline().split(",")
     while optimal_config[0] != "T":
         degeneracy += 1
