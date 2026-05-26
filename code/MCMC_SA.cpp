@@ -55,8 +55,13 @@ int main(int argc, char *argv[])
   ss.clear();
   ss.str("");
   ss.str(argv[3]);
+  vector<std::string> J_str({"1"});
   vector<double> J_vec({1.});
-  while (getline(ss, line, ',')) J_vec.push_back(stod(line));
+  while (getline(ss, line, ','))
+  {
+    J_str.push_back(line);
+    J_vec.push_back(stod(line));
+  }
   valarray<double> J(J_vec.data(), J_vec.size());
   // getting Hamiltonian normalisations (such that 0 <= H_P, H_C, H_D, H_B <= 1 and 0 <= H <= sum(Js) to make coupling tuning easier)
   valarray<double> Z = {
@@ -68,6 +73,8 @@ int main(int argc, char *argv[])
     // max(H_C): no ED is connected to another ED in the same constituency, i.e. number of disconnected parts = number of EDs
     double(map.EDs()),
     // max(H_D): same case as max(H_C), i.e. all neighbours of each ED are in a different constituency
+J[j];
+  file << "\nZ";
     double(map.borders()),
     // max(H_B): each constituency's EDs evenly spread across all counties
     // i.e. for each constituency, (number of EDs in constituency) - (number of EDs in main county) = (number of constituency's EDs in each county) * (total number of counties - 1) / (total number of counties) are not in primary county
@@ -205,8 +212,8 @@ int main(int argc, char *argv[])
   std::string save_dir = data_dir + std::to_string(map.total_seats()) + "_" + std::to_string(map.Q()) + "/";
   std::string filename = std::to_string(map.seat(0));
   for (int q = 1; q < seats.size(); q ++) filename += "," + std::to_string(map.seat(q));
-  filename += "_" + std::to_string(J[0]);
-  for (int j = 1; j < J.size(); j ++) filename += "," + std::to_string(J[j]);
+  filename += "_" + J_str[0];
+  for (int j = 1; j < J_str.size(); j ++) filename += "," + J_str[j];
   auto now = std::chrono::system_clock::now();
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
   filename += "_" + std::to_string(seconds.count());
@@ -216,7 +223,7 @@ int main(int argc, char *argv[])
   for (int q = 0; q < seats.size(); q ++) file << "," << map.seat(q);
   file << "\nN," << N << "," << N_disc << "\n";
   file << "J";
-  for (int j = 0; j < J.size(); j ++) file << "," << J[j];
+  for (int j = 0; j < J_str.size(); j ++) file << "," << J_str[j];
   file << "\nZ";
   for (int z = 0; z < Z.size(); z ++) file << "," << Z[z];
   // initial (randomised) configuration
