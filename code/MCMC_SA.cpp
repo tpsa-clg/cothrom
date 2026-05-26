@@ -6,6 +6,7 @@
 #include <valarray>
 using std::valarray;
 #include <chrono>
+#include <format>
 #include <set>
 #include "Map.h"
 #include "statfuncs.h"
@@ -202,7 +203,15 @@ int main(int argc, char *argv[])
   // printing everything to .csv
   std::ofstream file;
   // TODO save parameters in filename
-  file.open(data_dir + "configs.csv");
+  std::string save_dir = data_dir + std::to_string(map.total_seats()) + "_" + std::to_string(map.Q()) + "/";
+  std::string filename = std::to_string(map.seat(0));
+  for (int q = 1; q < seats.size(); q ++) filename += "," + std::to_string(map.seat(q));
+  filename += "_" + std::to_string(J[0]);
+  for (int j = 1; j < J.size(); j ++) filename += "," + std::to_string(J[j]);
+  auto now = std::chrono::system_clock::now();
+  auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
+  filename += "_" + std::to_string(seconds.count());
+  file.open(save_dir + filename + ".csv");
   // seats, measured & discarded sweeps, coupling constants, Hamiltonian normalisations
   file << "Q";
   for (int q = 0; q < seats.size(); q ++) file << "," << map.seat(q);
@@ -220,8 +229,8 @@ int main(int argc, char *argv[])
   {
     map.change_config(config);
     valarray<double> H = map.H();
-    file << "\nH," << H[0];
-    for (int i = 1; i < J.size(); i ++) file << "," << H[i];
+    file << "\nH";
+    for (int i = 0; i < J.size(); i ++) file << "," << H[i];
     file << "\n" << config.front();
     for (int x = 1; x < config.size(); x ++) file << "," << config[x]; 
   }
