@@ -75,7 +75,7 @@ def plot_HP_vs_HD_labeled(csv_path: str):
             labelled_points.add(key)
             label_idx += 1
 
-    
+
     legend_handles = []
 
     for seq, color in seq_to_colour.items():
