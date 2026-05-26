@@ -6,7 +6,6 @@
 #include <valarray>
 using std::valarray;
 #include <chrono>
-#include <format>
 #include <set>
 #include "Map.h"
 #include "statfuncs.h"
@@ -232,7 +231,7 @@ int main(int argc, char *argv[])
     file << "\nH";
     for (int i = 0; i < J.size(); i ++) file << "," << H[i];
     file << "\n" << config.front();
-    for (int x = 1; x < config.size(); x ++) file << "," << config[x]; 
+    for (int x = 1; x < config.size(); x ++) file << "," << config[x];
   }
 
   // all data vs temperature
