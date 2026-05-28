@@ -73,8 +73,6 @@ int main(int argc, char *argv[])
     // max(H_C): no ED is connected to another ED in the same constituency, i.e. number of disconnected parts = number of EDs
     double(map.EDs()),
     // max(H_D): same case as max(H_C), i.e. all neighbours of each ED are in a different constituency
-J[j];
-  file << "\nZ";
     double(map.borders()),
     // max(H_B): each constituency's EDs evenly spread across all counties
     // i.e. for each constituency, (number of EDs in constituency) - (number of EDs in main county) = (number of constituency's EDs in each county) * (total number of counties - 1) / (total number of counties) are not in primary county
