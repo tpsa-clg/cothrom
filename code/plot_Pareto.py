@@ -41,6 +41,18 @@ with open(actual_file) as f:
         Hs = [float(H) for H in line[1:]]
         actual_tuple = (Hs[0], Hs[2])
 
+all_tuples = {optimal_tuple for seat_config in seat_configs for optimal_tuple in optimal_tuples[seat_config]} | {actual_tuple}
+Pareto_tuples = set()
+for point in all_tuples:
+    Pareto_point = True
+    for other_point in all_tuples:
+        if point[0] > other_point[0] and point[1] > other_point[1]:
+            Pareto_point = False
+            break
+    if Pareto_point:
+        Pareto_tuples.add(point)
+Pareto_tuples = sorted(Pareto_tuples, key=lambda x: x[0])
+
 colours = ["#004488", "#BB5566", "#DDAA33", "k"]
 colour_dict = {seat_config: colour for seat_config, colour in zip(seat_configs, colours)}
 # TODO find and mark Pareto front - big markers for front points?
@@ -53,6 +65,13 @@ for seat_config in seat_configs:
 plt.xlabel(r"$H_P$")
 plt.xscale("log")
 plt.ylabel(r"$H_D$")
+xlim, ylim = plt.gca().get_xlim(), plt.gca().get_ylim()
+plt.xlim(xlim)
+plt.ylim(ylim)
+Pareto_tuples = [(Pareto_tuples[0][0], ylim[1])] + Pareto_tuples + [(xlim[1], Pareto_tuples[-1][1])]
+Pareto_xs = [Pareto_tuple[0] for Pareto_tuple in Pareto_tuples]
+Pareto_ys = [Pareto_tuple[1] for Pareto_tuple in Pareto_tuples]
+plt.plot(Pareto_xs, Pareto_ys, marker="", color="lightgrey", zorder=.5)
 plt.legend()
 # TODO label/identify front points
 plt.savefig(os.path.join(Pareto_dir, "Pareto.pdf"), bbox_inches="tight")
