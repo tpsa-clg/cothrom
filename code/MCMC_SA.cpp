@@ -205,8 +205,6 @@ int main(int argc, char *argv[])
   while (continue_annealing);
 
   // printing everything to .csv
-  std::ofstream file;
-  // TODO save parameters in filename
   std::string save_dir = data_dir + std::to_string(map.total_seats()) + "_" + std::to_string(map.Q()) + "/";
   std::string filename = std::to_string(map.seat(0));
   for (int q = 1; q < seats.size(); q ++) filename += "," + std::to_string(map.seat(q));
@@ -215,6 +213,7 @@ int main(int argc, char *argv[])
   auto now = std::chrono::system_clock::now();
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
   filename += "_" + std::to_string(seconds.count());
+  std::ofstream file;
   file.open(save_dir + filename + ".csv");
   // seats, measured & discarded sweeps, coupling constants, Hamiltonian normalisations
   file << "Q";

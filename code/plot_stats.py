@@ -14,35 +14,26 @@ data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir
 area_dir = os.path.join(data_dir, area_name)
 config_id = sys.argv[2]
 
-# Loading .geojson map, sorting by same index used in C++ code
-config_data = gpd.read_file(os.path.join(data_dir, "100m.geojson"))[["ED_GUID", "geometry"]].rename(columns={"ED_GUID": "GUID"})
-GUIDs = np.loadtxt(os.path.join(area_dir, "GUID.txt"), dtype="str")
-EDs = len(GUIDs)
-config_data = config_data[config_data.GUID.isin(GUIDs)].set_index("GUID").reindex(index=GUIDs).reset_index()
-
-# Reading & plotting initial & final configurations
-config_file = glob(os.path.join(area_dir, f"**/*{config_id}*.csv"))[0]
+# Finding line in csv with MCMCSA data
+config_file = glob(os.path.join(area_dir, f"**/*{config_id}*.csv"), recursive=True)
+if len(config_file) > 1:
+    raise ValueError(f"Multiple existing files with ID {config_id}")
+config_file = config_file[0]
 config_dir = os.path.dirname(config_file)
-optimal_Hs = []
 with open(config_file) as f:
-    seats = [int(s) for s in f.readline().replace("\n", "").split(",")[1:]]
+    next(f)
     next(f)
     couplings = [float(j) for j in f.readline().replace("\n", "").split(",")[1:]]
     norms = [float(z) for z in f.readline().replace("\n", "").split(",")[1:]]
     next(f)
-    config_data["Initial"] = [int(q) for q in f.readline().replace("\n", "").split(",")]
+    EDs = len(f.readline().replace("\n", "").split(","))
     next(f)
     degeneracy = 0
-    optimal_config = f.readline().replace("\n", "").split(",")
-    while optimal_config[0] == "H":
+    line = f.readline().replace("\n", "").split(",")
+    while line[0] == "H":
         degeneracy += 1
-        optimal_Hs.append([float(H) for H in optimal_config[1:]])
-        optimal_config = f.readline().replace("\n", "").split(",")
-        config_data[f"Optimal {degeneracy}"] = [int(q) for q in optimal_config]
-        optimal_config = f.readline().replace("\n", "").split(",")
-for state in ["Initial"] + [f"Optimal {d}" for d in range(1, degeneracy+1)]:
-    config_data.explore(column=state).save(os.path.join(area_dir, f"{state}.html"))
-del config_data
+        next(f)
+        line = f.readline().replace("\n", "").split(",")
 
 # Loading and re-organising MCMCSA data
 MCMC_data = pd.read_csv(config_file, skiprows=7+2*degeneracy)
@@ -76,7 +67,7 @@ data_dict = {objective: {
 del MCMC_data
 
 # Plotting objectives (combination, population, contiguity, compactness, counties, acceptance) for each observable (energy/expectation value, heat capacity/variance*beta**2, autocorrelation time)
-pdf = mpdf.PdfPages(os.path.join(config_dir, f"Objectives per observable {config_id}.pdf"))
+pdf = mpdf.PdfPages(os.path.join(config_dir, f"Objectives_per_observable_{config_id}.pdf"))
 for observable in observables:
     fig, ax = plt.subplots()
     fig.suptitle(observable)
@@ -105,7 +96,7 @@ pdf.close()
 
 # Plotting observables for each objective (energy/expectation value, heat capacity/variance*beta**2, autocorrelation time)
 colours = ["#004488", "#BB5566", "#DDAA33", "k"]
-pdf = mpdf.PdfPages(os.path.join(config_dir, f"Observables per objective {config_id}.pdf"))
+pdf = mpdf.PdfPages(os.path.join(config_dir, f"Observables_per_objective_{config_id}.pdf"))
 for objective in objectives:
     fig, ax = plt.subplots()
     fig.suptitle(objective)
@@ -142,5 +133,5 @@ plt.xlim(betas[0], betas[-1])
 plt.xlabel(r"$\beta$")
 plt.ylabel("Milliseconds")
 plt.plot(betas, runtimes)
-plt.savefig(os.path.join(config_dir, f"runtime vs β {config_id}.pdf"))
+plt.savefig(os.path.join(config_dir, f"runtime_vs_β_{config_id}.pdf"))
 plt.close()
