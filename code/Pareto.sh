@@ -1,8 +1,7 @@
 #!/bin/sh
 
-base_dir=/home/users/campioru/Electoral_Redistricting
-code_dir=${base_dir}/code
-data_dir=${base_dir}/data
+code_dir=code
+data_dir=data
 
 area_type=County
 area_list=CORK

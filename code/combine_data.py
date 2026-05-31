@@ -41,7 +41,7 @@ for resolution in resolutions:
   if geo_file:
     map_dict[resolution]["file"] = geo_file[0]
   else:
-    print(f"Tailte Éireann {resolution} ED geography not in data directory. Downloading from {map_dict[resolution]["webpage"]}...")
+    print(f"Tailte Éireann {resolution} ED geography not in data directory. Downloading from {map_dict[resolution]['webpage']}...")
     r = requests.get(map_dict[resolution]["download"])
     r.close()
     r.raise_for_status()
@@ -69,7 +69,7 @@ if not counties_file:
   except Exception as e:
     print(
       "Tailte Éireann county geography not downloaded. "
-      "This is not used in this execution, but is required for map_plot.py."
+      "This is not used in this execution, but is required for plotting configurations."
       )
     print("Error message:", e)
 

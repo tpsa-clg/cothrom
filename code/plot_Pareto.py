@@ -3,15 +3,20 @@ import sys
 import os
 from glob import glob
 
+
+# Area name, number of seats, number of constituencies
 area = sys.argv[1]
 seats = int(sys.argv[2])
 constituencies = int(sys.argv[3])
 
+# Directories
 data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir, "data"])
 area_dir = os.path.join(data_dir, area)
 Pareto_dir = os.path.join(area_dir, f"{seats}_{constituencies}")
 
+# Loading configurations and Hamiltonians
 config_files = glob(os.path.join(Pareto_dir, "*.csv"))
+# TODO order seat configurations to ensure same behaviour?
 seat_configs = {config_file.split("/")[-1].split("_")[0] for config_file in config_files}
 optimal_tuples = {seat_config: set() for seat_config in seat_configs}
 for config_file in config_files:
@@ -29,6 +34,7 @@ for config_file in config_files:
             next(f)
             line = f.readline().replace("\n", "").split(",")
 
+# Loading actual configuration
 actual_file = os.path.join(area_dir, "actual.csv")
 actual_tuple = tuple()
 with open(actual_file) as f:
@@ -41,6 +47,7 @@ with open(actual_file) as f:
         Hs = [float(H) for H in line[1:]]
         actual_tuple = (Hs[0], Hs[2])
 
+# Getting and sorting Pareto front
 all_tuples = {optimal_tuple for seat_config in seat_configs for optimal_tuple in optimal_tuples[seat_config]} | {actual_tuple}
 Pareto_tuples = set()
 for point in all_tuples:
@@ -53,9 +60,9 @@ for point in all_tuples:
         Pareto_tuples.add(point)
 Pareto_tuples = sorted(Pareto_tuples, key=lambda x: x[0])
 
+# Population vs compactness scatterplot, Pareto front
 colours = ["#004488", "#BB5566", "#DDAA33", "k"]
 colour_dict = {seat_config: colour for seat_config, colour in zip(seat_configs, colours)}
-# TODO find and mark Pareto front - big markers for front points?
 if actual_tuple:
     plt.scatter(actual_tuple[0], actual_tuple[1], marker="*", color=colour_dict[actual_seat_config])
 for seat_config in seat_configs:

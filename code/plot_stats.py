@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import geopandas as gpd
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf as mpdf
 import sys
@@ -14,7 +13,7 @@ data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir
 area_dir = os.path.join(data_dir, area_name)
 config_id = sys.argv[2]
 
-# Finding line in csv with MCMCSA data
+# Getting metadata
 config_file = glob(os.path.join(area_dir, f"**/*{config_id}*.csv"), recursive=True)
 if len(config_file) > 1:
     raise ValueError(f"Multiple existing files with ID {config_id}")
