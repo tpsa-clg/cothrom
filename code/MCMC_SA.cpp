@@ -6,7 +6,6 @@
 #include <valarray>
 using std::valarray;
 #include <chrono>
-#include <omp.h>
 #include <set>
 #include "Map.h"
 #include "statfuncs.h"
@@ -56,8 +55,13 @@ int main(int argc, char *argv[])
   ss.clear();
   ss.str("");
   ss.str(argv[3]);
+  vector<std::string> J_str({"1"});
   vector<double> J_vec({1.});
-  while (getline(ss, line, ',')) J_vec.push_back(stod(line));
+  while (getline(ss, line, ','))
+  {
+    J_str.push_back(line);
+    J_vec.push_back(stod(line));
+  }
   valarray<double> J(J_vec.data(), J_vec.size());
   // getting Hamiltonian normalisations (such that 0 <= H_P, H_C, H_D, H_B <= 1 and 0 <= H <= sum(Js) to make coupling tuning easier)
   valarray<double> Z = {
@@ -201,25 +205,37 @@ int main(int argc, char *argv[])
   while (continue_annealing);
 
   // printing everything to .csv
+  std::string save_dir = data_dir + std::to_string(map.total_seats()) + "_" + std::to_string(map.Q()) + "/";
+  std::string filename = std::to_string(map.seat(0));
+  for (int q = 1; q < seats.size(); q ++) filename += "," + std::to_string(map.seat(q));
+  filename += "_" + J_str[0];
+  for (int j = 1; j < J_str.size(); j ++) filename += "," + J_str[j];
+  auto now = std::chrono::system_clock::now();
+  auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
+  filename += "_" + std::to_string(seconds.count());
   std::ofstream file;
-  // TODO save parameters in filename
-  file.open(data_dir + "configs.csv");
+  file.open(save_dir + filename + ".csv");
   // seats, measured & discarded sweeps, coupling constants, Hamiltonian normalisations
   file << "Q";
   for (int q = 0; q < seats.size(); q ++) file << "," << map.seat(q);
   file << "\nN," << N << "," << N_disc << "\n";
   file << "J";
-  for (int j = 0; j < J.size(); j ++) file << "," << J[j];
+  for (int j = 0; j < J_str.size(); j ++) file << "," << J_str[j];
   file << "\nZ";
   for (int z = 0; z < Z.size(); z ++) file << "," << Z[z];
-  // initial and optimal configurations
+  // initial (randomised) configuration
   file << "\ninitial\n" << init.front();
   for (int x = 1; x < map.EDs(); x ++) file << "," << init[x];
-  file << "\noptimals";
+  // optimal configurations - total Hamiltonian for all, individual Hamiltonians for each
+  file << "\noptimals," << H_min;
   for (vector<int> config : optimal_configs)
   {
-    file << "\n" << config[0];
-    for (int x = 1; x < config.size(); x ++) file << "," << config[x]; 
+    map.change_config(config);
+    valarray<double> H = map.H();
+    file << "\nH";
+    for (int i = 0; i < J.size(); i ++) file << "," << H[i];
+    file << "\n" << config.front();
+    for (int x = 1; x < config.size(); x ++) file << "," << config[x];
   }
 
   // all data vs temperature

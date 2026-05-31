@@ -181,7 +181,7 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
   q_cou_[prop][ED_cou_[x]] ++;
 }
 
-Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(populations.size()), total_pop_(std::reduce(ED_pop_.begin(), ED_pop_.end())), EDs_(populations.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats.size()), total_seats_(std::reduce(seats_.begin(), seats_.end())), av_pop_(double(total_pop_) / total_seats_), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
+Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(populations.size()), total_pop_(std::accumulate(ED_pop_.begin(), ED_pop_.end(), 0)), EDs_(populations.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats.size()), total_seats_(std::accumulate(seats_.begin(), seats_.end(), 0)), av_pop_(double(total_pop_) / total_seats_), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
 {
   // seats: number of seats per constituency
   // populations/neighbours/counties: list of ED populations/neighbours/counties

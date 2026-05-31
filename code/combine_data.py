@@ -1,6 +1,6 @@
 import pandas as pd
 import geopandas as gpd
-import glob
+from glob import glob
 import requests
 import os
 
@@ -8,55 +8,89 @@ data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir
 os.makedirs(data_dir, exist_ok=True)
 
 # Downloading necessary files if not in data directory
-pop_file = glob.glob(os.path.join(data_dir, "F1060*.csv"))
+pop_file = glob(os.path.join(data_dir, "F1060*.csv"))
 if pop_file:
   pop_file = pop_file[0]
-  r = 0
 else:
-  print("CSO population data not in data directory. Downloading from https://data.cso.ie/table/F1060...")
-  r = requests.get(r"https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.PxAPIv1/en/76/C2022P1/F1060?query=%7B%22query%22:%5B%7B%22code%22:%22STATISTIC%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22F1060C01%22%5D%7D%7D,%7B%22code%22:%22C02199V02655%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22-%22%5D%7D%7D%5D,%22response%22:%7B%22format%22:%22csv%22,%22pivot%22:null,%22codes%22:true%7D%7D")
-  if r.status_code == 200:
-    pop_file = os.path.join(data_dir, "F1060.csv")
-    f = open(pop_file, "wb")
+  webpage = "https://data.cso.ie/table/F1060"
+  print(f"CSO ED populations not in data directory. Downloading from {webpage}...")
+  r = requests.get(
+    r"https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.PxAPIv1/en/76/C2022P1/F1060?query=%7B%22query%22:%5B%7B%22code%22:%22STATISTIC%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22F1060C01%22%5D%7D%7D,%7B%22code%22:%22C02199V02655%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22-%22%5D%7D%7D%5D,%22response%22:%7B%22format%22:%22csv%22,%22pivot%22:null,%22codes%22:true%7D%7D"
+    )
+  r.close()
+  r.raise_for_status()
+  pop_file = os.path.join(data_dir, "F1060.csv")
+  with open(pop_file, "wb") as f:
     f.write(r.content)
-    f.close()
-    print("CSO population data downloaded.")
-  else:
-    print("Unable to download. Terminating programme.")
-    quit()
-maps = ["100m", "50m", "20m", "Ungeneralised"]
-webpages = ["https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-" + map + "1" for map in [
-  "generalised-100m",
-  "generalised-50m",
-  "generalised-20m",
-  "ungeneralised"]]
-file_URLs = ["https://data-osi.opendata.arcgis.com/api/download/v1/items/" + suffix for suffix in [
-  "a55332e0d15148688e06893086cb023b/geojson?layers=1",
-  "5e0536e5c6804b0087b14a5d929c429a/geojson?layers=4",
-  "ed3d7b317e244a32b8eeba4d2bd9b9df/geojson?layers=5",
-  "deba50580cc24e4eb9cf50eb3cfebf69/geojson?layers=1"]]
-geo_files = []
-for m, map in enumerate(maps):
-  geo_file = glob.glob(os.path.join(data_dir, f"*{map}*.geojson"))
+  del r
+  print("CSO ED populations downloaded.")
+resolutions = ["100m", "50m", "20m", "Ungeneralised"]
+map_dict = {resolution: {
+  "webpage": f"https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-{webpage_suffix}1",
+  "download": f"https://data-osi.opendata.arcgis.com/api/download/v1/items/{download_suffix}"
+  } for resolution, webpage_suffix, download_suffix in zip(
+    resolutions, ["generalised-100m", "generalised-50m", "generalised-20m", "ungeneralised"],
+    [
+      "a55332e0d15148688e06893086cb023b/geojson?layers=1",
+      "5e0536e5c6804b0087b14a5d929c429a/geojson?layers=4",
+      "ed3d7b317e244a32b8eeba4d2bd9b9df/geojson?layers=5",
+      "deba50580cc24e4eb9cf50eb3cfebf69/geojson?layers=1"
+      ])}
+for resolution in resolutions:
+  geo_file = glob(os.path.join(data_dir, f"*{resolution}*.geojson"))
   if geo_file:
-    geo_files.append(geo_file[0])
+    map_dict[resolution]["file"] = geo_file[0]
   else:
-    print(f"Tailte Éireann {map} data not in data directory. Downloading from {file_URLs[m]}...")
-    r = requests.get(file_URLs[m])
-    if r.status_code == 200:
-      geo_files.append(os.path.join(data_dir, f"{map}.geojson"))
-      f = open(geo_files[-1], "wb")
+    print(f"Tailte Éireann {resolution} ED geography not in data directory. Downloading from {map_dict[resolution]['webpage']}...")
+    r = requests.get(map_dict[resolution]["download"])
+    r.close()
+    r.raise_for_status()
+    map_dict[resolution]["file"] = os.path.join(data_dir, f"{resolution}.geojson")
+    with open(map_dict[resolution]["file"], "wb") as f:
       f.write(r.content)
-      f.close()
-      print(f"Tailte Éireann {map} data downloaded.")
-    else:
-      print("Unable to download. Terminating programme.")
-      quit()
-del r
+    del r
+    print(f"Tailte Éireann {resolution} ED geography downloaded.")
+counties_file = glob(os.path.join(data_dir, "Counties*.geojson"))
+if not counties_file:
+  print(
+    "Tailte Éireann county geography not in data directory. Downloading from "
+    "https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m1..."
+    )
+  try:
+    r = requests.get(
+      "https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0"
+      )
+    r.close()
+    r.raise_for_status()
+    with open(os.path.join(data_dir, f"Counties.geojson"), "wb") as f:
+      f.write(r.content)
+    del r
+    print("Tailte Éireann county geography downloaded.")
+  except Exception as e:
+    print(
+      "Tailte Éireann county geography not downloaded. "
+      "This is not used in this execution, but is required for plotting configurations."
+      )
+    print("Error message:", e)
 
 
-# Merging ED datasets from CSO (population) & Tailte Éireann (name, county, LEA, geography)
-important_data = gpd.read_file(geo_files[0])[["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]].rename(columns={"ED_GUID": "GUID", "ED_ENGLISH": "Name", "COUNTY_ENGLISH": "Administrative Region", "CSO_LEA": "LEA"}).merge(pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])[:-1].rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}), on="GUID").sort_values("GUID").reset_index(drop=True)
+# Reading Tailte Éireann data (name, county, LEA, geography)
+geo_df = gpd.read_file(map_dict[resolutions[0]]["file"])
+geo_df = geo_df[["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]]
+geo_df.rename(columns={"ED_GUID": "GUID",
+                       "ED_ENGLISH": "Name",
+                       "COUNTY_ENGLISH": "Administrative Region",
+                       "CSO_LEA": "LEA"}, inplace=True)
+
+# Reading Central Statistics Office data (population)
+pop_df = pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])
+pop_df.rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}, inplace=True)
+
+# Merging datasets
+important_data = geo_df.merge(pop_df, how="left", on="GUID")
+del geo_df, pop_df
+important_data.sort_values("GUID", inplace=True)
+important_data.reset_index(drop=True, inplace=True)
 print("CSO & Tailte Éireann data merged.")
 
 
@@ -65,13 +99,21 @@ important_data["Area"], important_data["Perimeter"] = important_data.area/(1000.
 print("Area and perimeter data added.")
 
 # Finding all neighbours (union of neighbours at each resolution)
-important_data["Neighbours"] = [{important_data.GUID[j] for j, touch in enumerate(important_data.geometry.touches(geom)) if touch} for geom in important_data.geometry]
+important_data["Neighbours"] = [{
+  important_data.GUID[y] for y, touch in enumerate(important_data.geometry.touches(geom)) if touch
+  } for geom in important_data.geometry]
 important_data.drop(columns="geometry", inplace=True)
 print("100m neighbours data added.")
-for map, geo_file in zip(maps[1:], geo_files[1:]):
-  gdf = gpd.read_file(geo_file, columns=["ED_GUID", "geometry"]).sort_values("ED_GUID").reset_index(drop=True)
-  important_data.loc[:, "Neighbours"] = [neigh | {gdf.ED_GUID[j] for j, touch in enumerate(gdf.geometry.touches(gdf.geometry[i])) if touch} for i, neigh in enumerate(important_data.Neighbours)]
-  print(f"{map} neighbours data merged.")
+for resolution in resolutions[1:]:
+  gdf = gpd.read_file(map_dict[resolution]["file"])
+  gdf = gdf[["ED_GUID", "geometry"]]
+  gdf.rename(columns={"ED_GUID": "GUID"}, inplace=True)
+  gdf.sort_values("GUID", inplace=True)
+  gdf.reset_index(drop=True, inplace=True)
+  important_data.loc[:, "Neighbours"] = [neigh | {
+    gdf.GUID[y] for y, touch in enumerate(gdf.geometry.touches(gdf.geometry[x])) if touch
+    } for x, neigh in enumerate(important_data.Neighbours)]
+  print(f"{resolution} neighbours data merged.")
 del gdf
 
 # Manually adding neighbours to neighbourless EDs
@@ -1283,3 +1325,55 @@ print("Complement constituency data added.")
 # Saving to .csv
 important_data.to_csv(os.path.join(data_dir, "ED_data.csv"), columns=["GUID", "Name", "County", "Administrative Region", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
 print("Data saved to ED_data.csv.")
+
+
+# Making and saving dataframe for constituency data (seats per constituency)
+# TODO extend this further - get geojson for constituency boundaries and repeat above
+constituency_data = pd.DataFrame([
+  ("CARLOW-KILKENNY", 5),
+  ("CAVAN-MONAGHAN", 5),
+  ("CLARE", 4),
+  ("CORK EAST", 4),
+  ("CORK NORTH-CENTRAL", 5),
+  ("CORK NORTH-WEST", 3),
+  ("CORK SOUTH-CENTRAL", 5),
+  ("CORK SOUTH-WEST", 3),
+  ("DONEGAL", 5),
+  ("DUBLIN BAY NORTH", 5),
+  ("DUBLIN BAY SOUTH", 4),
+  ("DUBLIN CENTRAL", 4),
+  ("DUBLIN FINGAL EAST", 3),
+  ("DUBLIN FINGAL WEST", 3),
+  ("DUBLIN MID-WEST", 5),
+  ("DUBLIN NORTH-WEST", 3),
+  ("DUBLIN RATHDOWN", 4),
+  ("DUBLIN SOUTH-CENTRAL", 4),
+  ("DUBLIN SOUTH-WEST", 5),
+  ("DUBLIN WEST", 5),
+  ("DÚN LAOGHAIRE", 4),
+  ("GALWAY EAST", 4),
+  ("GALWAY WEST", 5),
+  ("KERRY", 5),
+  ("KILDARE NORTH", 5),
+  ("KILDARE SOUTH", 4),
+  ("LAOIS", 3),
+  ("LIMERICK CITY", 4),
+  ("LIMERICK COUNTY", 3),
+  ("LONGFORD-WESTMEATH", 5),
+  ("LOUTH", 5),
+  ("MAYO", 5),
+  ("MEATH EAST", 4),
+  ("MEATH WEST", 3),
+  ("OFFALY", 3),
+  ("ROSCOMMON-GALWAY", 3),
+  ("SLIGO-LEITRIM", 4),
+  ("TIPPERARY NORTH", 3),
+  ("TIPPERARY SOUTH", 3),
+  ("WATERFORD", 4),
+  ("WEXFORD", 4),
+  ("WICKLOW", 4),
+  ("WICKLOW-WEXFORD", 3)
+  ], columns=["Constituency", "Seats"])
+
+constituency_data.to_csv(os.path.join(data_dir, "Constituency_data.csv"), index=False)
+print("Data saved to Constituency_data.csv.")

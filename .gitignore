@@ -10,4 +10,5 @@
 
 # executables, object files
 MCMC_SA
+actual_H
 *.o
