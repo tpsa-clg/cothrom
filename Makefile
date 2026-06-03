@@ -5,7 +5,7 @@ HEADERS_DIR = headers
 VPATH = ${DATA_DIR}:${CODE_DIR}:${HEADERS_DIR}
 
 ED_data.csv: combine_data.py
-	python3 $<
+	python $<
 
 %.o: %.cpp %.h
 	${CC} $< -c -fopenmp

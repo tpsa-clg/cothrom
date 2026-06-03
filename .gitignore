@@ -1,6 +1,7 @@
 # data files
 *.pdf
 *.txt
+!requirements.txt
 *.geojson
 *.csv
 *.html
@@ -12,3 +13,6 @@
 MCMC_SA
 actual_H
 *.o
+
+# virtual environment
+.venv/
