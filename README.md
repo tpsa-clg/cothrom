@@ -81,7 +81,7 @@ bash code/Pareto.sh
 python code/plot_Pareto.py <area_name> <seats> <constituencies>
 ````
 
-`Pareto.sh` - submits Slurm jobs for running `MCMC_SA.cpp` in parallel for combinations of seat configurations and couplings - assumes a fixed contiguity coupling proportion - must be run from parent directory
+`Pareto.sh` - submits Slurm jobs for running `MCMC_SA.cpp` in parallel for combinations of seat configurations and couplings - assumes a fixed contiguity coupling proportion
 
 `plot_Pareto.py` - plots Pareto front for a given area and seat configuration - takes area, number of seats, and number of constituencies as inputs, e.g.
 ````

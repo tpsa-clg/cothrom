@@ -48,7 +48,7 @@ for q, constituency in enumerate(constituency_list):
   area_df.loc[area_df.Constituency==constituency, "Configuration"] = q
 with open(os.path.join(area_dir, "actual.csv"), "w") as f:
   f.write(f"Q,{','.join([str(seat) for seat in seat_list])}\n")
-  f.write(f"{','.join([str(q) for q in area_df["Configuration"]])}\n")
+  f.write(f"{','.join([str(q) for q in area_df['Configuration']])}\n")
 
 
 # Comparing distributions of ED population, area, perimeter, and neighbours between area of consideration and Ireland

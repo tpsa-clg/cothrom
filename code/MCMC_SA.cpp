@@ -148,6 +148,7 @@ int main(int argc, char *argv[])
     // overall Hamiltonian coefficients (coupling + normalisation + temperature) and Hamiltonian tally
     valarray<double> J_ZT = J_Z / T, H(J.size());
     // thermalising/equilibrising
+    // TODO also check for optimal configs here? would need to keep track of H but skip measurements
     for (int n = 0; n < N_disc; n ++) map.GS_Sweep(H, J_ZT);
 
     // getting Hamiltonians at start of measured iterations
