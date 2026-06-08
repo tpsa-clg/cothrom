@@ -16,3 +16,6 @@ actual_H
 
 # virtual environment
 .venv/
+
+# Slurm outputs
+slurm-*.out

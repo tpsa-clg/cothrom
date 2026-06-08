@@ -16,8 +16,7 @@ Pareto_dir = os.path.join(area_dir, f"{seats}_{constituencies}")
 
 # Loading configurations and Hamiltonians
 config_files = glob(os.path.join(Pareto_dir, "*.csv"))
-# TODO order seat configurations to ensure same behaviour?
-seat_configs = {config_file.split("/")[-1].split("_")[0] for config_file in config_files}
+seat_configs = sorted({config_file.split("/")[-1].split("_")[0] for config_file in config_files})
 optimal_tuples = {seat_config: set() for seat_config in seat_configs}
 for config_file in config_files:
     with open(config_file) as f:
@@ -41,9 +40,8 @@ with open(actual_file) as f:
     line = f.readline().replace("\n", "")
     actual_seat_config = line[2:]
     seat_list = [int(s) for s in line.split(",")[1:]]
-    if sum(seat_list) == seats and len(seat_list) == constituencies:
-        next(f)
-        line = f.readline().replace("\n", "").split(",")
+    line = f.readline().replace("\n", "").split(",")
+    if line[0] == "H" and sum(seat_list) == seats and len(seat_list) == constituencies:
         Hs = [float(H) for H in line[1:]]
         actual_tuple = (Hs[0], Hs[2])
 
