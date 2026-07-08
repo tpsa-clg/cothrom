@@ -1,13 +1,19 @@
 import pandas as pd
 import geopandas as gpd
+from libpysal.weights.contiguity import Queen
 from glob import glob
 import requests
 import os
 
+# Map resolution
+resolution = "100m"
+
+
+# Setting data directory
 data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir, "data"])
 os.makedirs(data_dir, exist_ok=True)
 
-# Downloading necessary files if not in data directory
+# Downloading Central Statistics Office population data if not in data directory
 pop_file = glob(os.path.join(data_dir, "F1060*.csv"))
 if pop_file:
     pop_file = pop_file[0]
@@ -24,32 +30,35 @@ else:
         f.write(r.content)
     del r
     print("CSO ED populations downloaded.")
-resolutions = ["100m", "50m", "20m", "Ungeneralised"]
-map_dict = {resolution: {
+
+# Downloading Tailte Éireann geographical data if not in data directory
+available_resolutions = ["100m", "50m", "20m", "Ungeneralised"]
+map_dict = {available_resolution: {
     "webpage": f"https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-{webpage_suffix}1",
     "download": f"https://data-osi.opendata.arcgis.com/api/download/v1/items/{download_suffix}"
-    } for resolution, webpage_suffix, download_suffix in zip(
-        resolutions, ["generalised-100m", "generalised-50m", "generalised-20m", "ungeneralised"],
+    } for available_resolution, webpage_suffix, download_suffix in zip(
+        available_resolutions, ["generalised-100m", "generalised-50m", "generalised-20m", "ungeneralised"],
         [
             "a55332e0d15148688e06893086cb023b/geojson?layers=1",
             "5e0536e5c6804b0087b14a5d929c429a/geojson?layers=4",
             "ed3d7b317e244a32b8eeba4d2bd9b9df/geojson?layers=5",
             "deba50580cc24e4eb9cf50eb3cfebf69/geojson?layers=1"
             ])}
-for resolution in resolutions:
-    geo_file = glob(os.path.join(data_dir, f"*{resolution}*.geojson"))
-    if geo_file:
-        map_dict[resolution]["file"] = geo_file[0]
-    else:
-        print(f"Tailte Éireann {resolution} ED geography not in data directory. Downloading from {map_dict[resolution]['webpage']}...")
-        r = requests.get(map_dict[resolution]["download"])
-        r.close()
-        r.raise_for_status()
-        map_dict[resolution]["file"] = os.path.join(data_dir, f"{resolution}.geojson")
-        with open(map_dict[resolution]["file"], "wb") as f:
-            f.write(r.content)
-        del r
-        print(f"Tailte Éireann {resolution} ED geography downloaded.")
+geo_file = glob(os.path.join(data_dir, f"*{resolution}*.geojson"))
+if geo_file:
+    geo_file = geo_file[0]
+else:
+    print(f"Tailte Éireann {resolution} ED geography not in data directory. Downloading from {map_dict[resolution]['webpage']}...")
+    r = requests.get(map_dict[resolution]["download"])
+    r.close()
+    r.raise_for_status()
+    geo_file = os.path.join(data_dir, f"{resolution}.geojson")
+    with open(geo_file, "wb") as f:
+        f.write(r.content)
+    del r
+    print(f"Tailte Éireann {resolution} ED geography downloaded.")
+
+# Downloading county data if not in data directory
 counties_file = glob(os.path.join(data_dir, "Counties*.geojson"))
 if not counties_file:
     print(
@@ -74,17 +83,17 @@ if not counties_file:
         print("Error message:", e)
 
 
-# Reading Tailte Éireann data (name, county, LEA, geography)
-geo_df = gpd.read_file(map_dict[resolutions[0]]["file"])
-geo_df = geo_df[["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]]
-geo_df.rename(columns={"ED_GUID": "GUID",
-                                             "ED_ENGLISH": "Name",
-                                             "COUNTY_ENGLISH": "Administrative Region",
-                                             "CSO_LEA": "LEA"}, inplace=True)
-
-# Reading Central Statistics Office data (population)
+# Reading population data
 pop_df = pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])
 pop_df.rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}, inplace=True)
+
+# Reading geographical data (name, county, LEA, geometry)
+geo_df = gpd.read_file(geo_file)
+geo_df = geo_df[["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]]
+geo_df.rename(columns={"ED_GUID": "GUID",
+                       "ED_ENGLISH": "Name",
+                       "COUNTY_ENGLISH": "Administrative Region",
+                       "CSO_LEA": "LEA"}, inplace=True)
 
 # Merging datasets
 important_data = geo_df.merge(pop_df, how="left", on="GUID")
@@ -98,23 +107,11 @@ print("CSO & Tailte Éireann data merged.")
 important_data["Area"], important_data["Perimeter"] = important_data.area/(1000.**2.), important_data.length/(1000.)
 print("Area and perimeter data added.")
 
-# Finding all neighbours (union of neighbours at each resolution)
-important_data["Neighbours"] = [{
-    important_data.GUID[y] for y, touch in enumerate(important_data.geometry.touches(geom)) if touch
-    } for geom in important_data.geometry]
-important_data.drop(columns="geometry", inplace=True)
-print("100m neighbours data added.")
-for resolution in resolutions[1:]:
-    gdf = gpd.read_file(map_dict[resolution]["file"])
-    gdf = gdf[["ED_GUID", "geometry"]]
-    gdf.rename(columns={"ED_GUID": "GUID"}, inplace=True)
-    gdf.sort_values("GUID", inplace=True)
-    gdf.reset_index(drop=True, inplace=True)
-    important_data.loc[:, "Neighbours"] = [neigh | {
-        gdf.GUID[y] for y, touch in enumerate(gdf.geometry.touches(gdf.geometry[x])) if touch
-        } for x, neigh in enumerate(important_data.Neighbours)]
-    print(f"{resolution} neighbours data merged.")
-del gdf
+# Finding all neighbours
+weights = Queen.from_dataframe(important_data, ids="GUID", use_index=False)
+neighbour_dict = weights.neighbors
+important_data["Neighbours"] = [set(neighbour_dict[GUID]) for GUID in important_data.GUID.values]
+del weights, neighbour_dict
 
 # Manually adding neighbours to neighbourless EDs
 important_data.loc[important_data.Name=="DOOEGA", "Neighbours"].values[0].add("2ae19629-196e-13a3-e055-000000000001")
@@ -128,8 +125,6 @@ important_data.loc[important_data.Name=="ARAN", "Neighbours"] = {"2ae19629-20a2-
 important_data.loc[important_data.GUID=="2ae19629-20a2-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="ARAN"].GUID.values[0])
 important_data.loc[important_data.Name=="VALENCIA", "Neighbours"] = {"2ae19629-2297-13a3-e055-000000000001"}
 important_data.loc[important_data.GUID=="2ae19629-2297-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="VALENCIA"].GUID.values[0])
-important_data.loc[important_data.Name=="LISTOWEL URBAN", "Neighbours"] = {"2ae19629-2247-13a3-e055-000000000001"}
-important_data.loc[important_data.GUID=="2ae19629-2247-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="LISTOWEL URBAN"].GUID.values[0])
 important_data.loc[important_data.Name=="GORUMNA", "Neighbours"] = {"2ae19629-236d-13a3-e055-000000000001"}
 important_data.loc[important_data.GUID=="2ae19629-236d-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="GORUMNA"].GUID.values[0])
 important_data.loc[important_data.Name=="INISHBOFIN", "Neighbours"] = {"2ae19629-20f4-13a3-e055-000000000001"}
@@ -1320,7 +1315,6 @@ important_data.loc[(important_data["Administrative Region"].isin(["NORTH TIPPERA
 important_data.loc[(important_data["Administrative Region"]=="WEXFORD") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WEXFORD"
 important_data.loc[(important_data["Administrative Region"]=="WICKLOW") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WICKLOW"
 print("Complement constituency data added.")
-
 
 # Saving to .csv
 important_data.to_csv(os.path.join(data_dir, "ED_data.csv"), columns=["GUID", "Name", "County", "Administrative Region", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
