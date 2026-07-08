@@ -108,8 +108,10 @@ important_data["Area"], important_data["Perimeter"] = important_data.area/(1000.
 print("Area and perimeter data added.")
 
 # Finding all neighbours
-weights = Queen.from_dataframe(important_data)
-important_data["Neighbours"] = [set(important_data.loc[weights.neighbors[i]]["GUID"].tolist()) for i in range(len(important_data))]
+weights = Queen.from_dataframe(important_data, ids="GUID", use_index=False)
+neighbour_dict = weights.neighbors
+important_data["Neighbours"] = [set(neighbour_dict[GUID]) for GUID in important_data.GUID.values]
+del weights, neighbour_dict
 
 # Manually adding neighbours to neighbourless EDs
 important_data.loc[important_data.Name=="DOOEGA", "Neighbours"].values[0].add("2ae19629-196e-13a3-e055-000000000001")
