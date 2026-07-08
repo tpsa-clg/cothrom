@@ -1,5 +1,6 @@
 import pandas as pd
 import geopandas as gpd
+from libpysal.weights.contiguity import Queen
 from glob import glob
 import requests
 import os
@@ -98,23 +99,9 @@ print("CSO & Tailte Éireann data merged.")
 important_data["Area"], important_data["Perimeter"] = important_data.area/(1000.**2.), important_data.length/(1000.)
 print("Area and perimeter data added.")
 
-# Finding all neighbours (union of neighbours at each resolution)
-important_data["Neighbours"] = [{
-    important_data.GUID[y] for y, touch in enumerate(important_data.geometry.touches(geom)) if touch
-    } for geom in important_data.geometry]
-important_data.drop(columns="geometry", inplace=True)
-print("100m neighbours data added.")
-for resolution in resolutions[1:]:
-    gdf = gpd.read_file(map_dict[resolution]["file"])
-    gdf = gdf[["ED_GUID", "geometry"]]
-    gdf.rename(columns={"ED_GUID": "GUID"}, inplace=True)
-    gdf.sort_values("GUID", inplace=True)
-    gdf.reset_index(drop=True, inplace=True)
-    important_data.loc[:, "Neighbours"] = [neigh | {
-        gdf.GUID[y] for y, touch in enumerate(gdf.geometry.touches(gdf.geometry[x])) if touch
-        } for x, neigh in enumerate(important_data.Neighbours)]
-    print(f"{resolution} neighbours data merged.")
-del gdf
+# Finding all neighbours
+weights = Queen.from_dataframe(important_data)
+important_data["Neighbours"] = [set(important_data.loc[weights.neighbors[i]]["GUID"].tolist()) for i in range(len(important_data))]
 
 # Manually adding neighbours to neighbourless EDs
 important_data.loc[important_data.Name=="DOOEGA", "Neighbours"].values[0].add("2ae19629-196e-13a3-e055-000000000001")
@@ -128,8 +115,6 @@ important_data.loc[important_data.Name=="ARAN", "Neighbours"] = {"2ae19629-20a2-
 important_data.loc[important_data.GUID=="2ae19629-20a2-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="ARAN"].GUID.values[0])
 important_data.loc[important_data.Name=="VALENCIA", "Neighbours"] = {"2ae19629-2297-13a3-e055-000000000001"}
 important_data.loc[important_data.GUID=="2ae19629-2297-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="VALENCIA"].GUID.values[0])
-important_data.loc[important_data.Name=="LISTOWEL URBAN", "Neighbours"] = {"2ae19629-2247-13a3-e055-000000000001"}
-important_data.loc[important_data.GUID=="2ae19629-2247-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="LISTOWEL URBAN"].GUID.values[0])
 important_data.loc[important_data.Name=="GORUMNA", "Neighbours"] = {"2ae19629-236d-13a3-e055-000000000001"}
 important_data.loc[important_data.GUID=="2ae19629-236d-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="GORUMNA"].GUID.values[0])
 important_data.loc[important_data.Name=="INISHBOFIN", "Neighbours"] = {"2ae19629-20f4-13a3-e055-000000000001"}
@@ -1320,29 +1305,6 @@ important_data.loc[(important_data["Administrative Region"].isin(["NORTH TIPPERA
 important_data.loc[(important_data["Administrative Region"]=="WEXFORD") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WEXFORD"
 important_data.loc[(important_data["Administrative Region"]=="WICKLOW") & (important_data.Constituency!="WICKLOW-WEXFORD"), "Constituency"] = "WICKLOW"
 print("Complement constituency data added.")
-
-# Adding missing neighbour data identified using libpysal
-missing_neighbour_data = {
-  '2ae19629-1912-13a3-e055-000000000001': '2ae19629-192a-13a3-e055-000000000001',
-  '2ae19629-192a-13a3-e055-000000000001': '2ae19629-1912-13a3-e055-000000000001',
-  '2ae19629-1ce8-13a3-e055-000000000001': '2ae19629-1d39-13a3-e055-000000000001',
-  '2ae19629-1d39-13a3-e055-000000000001': '2ae19629-1ce8-13a3-e055-000000000001',
-  '2ae19629-1e43-13a3-e055-000000000001': '2ae19629-1e74-13a3-e055-000000000001',
-  '2ae19629-1e74-13a3-e055-000000000001': '2ae19629-1e43-13a3-e055-000000000001',
-  '2ae19629-1f74-13a3-e055-000000000001': '6a372d28-f5c8-4acc-b237-4f7bb4a9ad53',
-  '2ae19629-1f77-13a3-e055-000000000001': '2ae19629-1f78-13a3-e055-000000000001',
-  '2ae19629-1f78-13a3-e055-000000000001': '2ae19629-1f77-13a3-e055-000000000001',
-  '2ae19629-2065-13a3-e055-000000000001': '2ae19629-20b7-13a3-e055-000000000001',
-  '2ae19629-206e-13a3-e055-000000000001': '2ae19629-20d3-13a3-e055-000000000001',
-  '2ae19629-20b7-13a3-e055-000000000001': '2ae19629-2065-13a3-e055-000000000001',
-  '2ae19629-20d3-13a3-e055-000000000001': '2ae19629-206e-13a3-e055-000000000001',
-  '316a25a0-f7b6-4d01-b188-5efd7bd804c5': '7c85cece-22eb-4ebb-8d1f-9c0f734eaea8',
-  '6a372d28-f5c8-4acc-b237-4f7bb4a9ad53': '2ae19629-1f74-13a3-e055-000000000001',
-  '7c85cece-22eb-4ebb-8d1f-9c0f734eaea8': '316a25a0-f7b6-4d01-b188-5efd7bd804c5'
-  }
-
-for guid, neighbour_guid in missing_neighbour_data.items():
-  important_data.loc[important_data.GUID==guid, "Neighbours"] = important_data.loc[important_data.GUID==guid, "Neighbours"].apply(lambda x: x | {neighbour_guid})
 
 # Saving to .csv
 important_data.to_csv(os.path.join(data_dir, "ED_data.csv"), columns=["GUID", "Name", "County", "Administrative Region", "Constituency", "LEA", "Population", "Area", "Perimeter", "Neighbours"], index=False)
