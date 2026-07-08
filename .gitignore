@@ -19,3 +19,6 @@ actual_H
 
 # Slurm outputs
 slurm-*.out
+
+# cached directories
+**/__pycache__/
