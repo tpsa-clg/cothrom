@@ -1,6 +1,6 @@
 import pandas as pd
 import geopandas as gpd
-from libpysal.weights.contiguity import Queen
+from libpysal.weights import Queen
 from glob import glob
 import requests
 import os
@@ -108,11 +108,10 @@ important_data["Area"], important_data["Perimeter"] = important_data.area/(1000.
 print("Area and perimeter data added.")
 
 # Finding all neighbours
-weights = Queen.from_dataframe(important_data, ids="GUID", use_index=False)
+weights = Queen.from_dataframe(important_data, ids="GUID", use_index=False, silence_warnings=True)
 neighbour_dict = weights.neighbors
 important_data["Neighbours"] = [set(neighbour_dict[GUID]) for GUID in important_data.GUID.values]
 del weights, neighbour_dict
-print("Neighbours added.")
 
 # Manually adding neighbours to neighbourless EDs
 important_data.loc[important_data.Name=="DOOEGA", "Neighbours"].values[0].add("2ae19629-196e-13a3-e055-000000000001")
@@ -133,6 +132,7 @@ important_data.loc[important_data.GUID=="2ae19629-20f4-13a3-e055-000000000001", 
 important_data.loc[important_data.Name=="INISHMORE", "Neighbours"] = [{"2ae19629-1fc0-13a3-e055-000000000001", "2ae19629-23a5-13a3-e055-000000000001"}]
 important_data.loc[important_data.GUID=="2ae19629-1fc0-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="INISHMORE"].GUID.values[0])
 important_data.loc[important_data.GUID=="2ae19629-23a5-13a3-e055-000000000001", "Neighbours"].values[0].add(important_data[important_data.Name=="INISHMORE"].GUID.values[0])
+print("Neighbours data added.")
 
 # Getting "actual" county names
 important_data["County"] = important_data["Administrative Region"]
