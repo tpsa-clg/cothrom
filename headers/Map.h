@@ -45,9 +45,8 @@ class Map
     vector<vector<int>> q_cou_;
 
     // Return a vector of (geographically) connected subsets from a vector of EDs.
-    // Note: input vector will be empty at return.
-    // Also note: the ordering of subsets, and within each subset, is arbitrary.
-    vector<vector<int>> connect_(vector<int>& disconnected) const;
+    // Note: the ordering of subsets, and within each subset, is arbitrary.
+    vector<vector<int>> connect_(const vector<int>& disconnected) const;
 
     // Return the change to each Hamiltonian by changing an ED's constituency (from the current constituency/to a proposed constituency).
     // Also returns (by reference) some relevant quantities for site_update_().
