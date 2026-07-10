@@ -10,43 +10,51 @@ using std::valarray;
 std::mt19937 r(1234);
 std::uniform_real_distribution<double> standard_uniform(0., 1.);
 
-vector<vector<int>> Map::connect_(vector<int>& disconnected) const
+vector<vector<int>> Map::connect_(const vector<int>& disconnected) const
 {
   // disconnected: a list of EDs that we want to split into connected subsets, i.e. the contiguous parts
 
+  // create a list of "booleans" determining if an ED needs to be assigned to a connected subset
+  vector<int> unassigned(EDs_, 0);
+  for (int i = 0; i < disconnected.size(); i ++)
+  {
+    int x = disconnected[i];
+    unassigned[x] = 1;
+  }
   // create an empty list of lists, where connected[i] will give the i-th connected subset of the input ED list
   vector<vector<int>> connected(0);
-  // iterate until our list of EDs is empty, i.e. until we have assigned each ED to a connected subset
-  while (not disconnected.empty())
+
+  // iterate through our list of EDs
+  for (int i = 0; i < disconnected.size(); i ++)
   {
-    // pick an arbitrary element of the remaining list of EDs - here we choose the last element of the list
-    // we will then create the connected subset to which this ED belongs
-    vector<int> group = { disconnected.back() };
-    disconnected.pop_back();
-    // iterate over EDs in connected subset (breadth-first) until no more neighbours can be added
-    int i = 0;
-    while (i < group.size())
+    int x = disconnected[i];
+    // if an ED in our list hasn't been added to a connected subset, add it to a new one and mark it as assigned
+    if (unassigned[x])
     {
-      int x = group[i];
-      // iterate over ED's neighbours
-      for (int j = 0; j < ED_nei_[x].size(); j ++)
+      vector<int> group = { x };
+      unassigned[x] = 0;
+      // iterate over EDs in connected subset (breadth-first) until no more neighbours can be added
+      int j = 0;
+      while (j < group.size())
       {
-        int y = ED_nei_[x][j];
-        // find location of neighbour in list of remaining EDs
-        // if it == disconnected.end() then the neighbour is not in list (and thus is already in our connected subset list or was never in the original list of EDs)
-        // otherwise we move it into our connected subset of EDs
-        vector<int>::iterator it = std::find(disconnected.begin(), disconnected.end(), y);
-        if (it != disconnected.end())
+        int y = group[j];
+        // iterate over ED's neighbours
+        for (int k = 0; k < ED_nei_[y].size(); k ++)
         {
-          group.push_back(y);
-          disconnected.erase(it);
+          int z = ED_nei_[y][k];
+          // if neighbour needs to be added to a connected subset, add it and mark it as assigned
+          if (unassigned[z])
+          {
+            group.push_back(z);
+            unassigned[z] = 0;
+          }
         }
+        // move onto next ED in connected subset
+        j ++;
       }
-      // move onto next ED in connected subset
-      i ++;
+      // append this connected subset into our list of connected subsets
+      connected.push_back(group);
     }
-    // append this connected subset into our list of connected subsets
-    connected.push_back(group);
   }
   return connected;
 }
