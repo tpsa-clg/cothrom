@@ -15,11 +15,10 @@ vector<vector<int>> Map::connect_(const vector<int>& disconnected) const
   // disconnected: a list of EDs that we want to split into connected subsets, i.e. the contiguous parts
 
   // create a list of "booleans" determining if an ED needs to be assigned to a connected subset
-  vector<int> unassigned(EDs_, 0);
   for (int i = 0; i < disconnected.size(); i ++)
   {
     int x = disconnected[i];
-    unassigned[x] = 1;
+    unassigned__[x] = 1;
   }
   // create an empty list of lists, where connected[i] will give the i-th connected subset of the input ED list
   vector<vector<int>> connected(0);
@@ -29,10 +28,10 @@ vector<vector<int>> Map::connect_(const vector<int>& disconnected) const
   {
     int x = disconnected[i];
     // if an ED in our list hasn't been added to a connected subset, add it to a new one and mark it as assigned
-    if (unassigned[x])
+    if (unassigned__[x])
     {
       vector<int> group = { x };
-      unassigned[x] = 0;
+      unassigned__[x] = 0;
       // iterate over EDs in connected subset (breadth-first) until no more neighbours can be added
       int j = 0;
       while (j < group.size())
@@ -43,10 +42,10 @@ vector<vector<int>> Map::connect_(const vector<int>& disconnected) const
         {
           int z = ED_nei_[y][k];
           // if neighbour needs to be added to a connected subset, add it and mark it as assigned
-          if (unassigned[z])
+          if (unassigned__[z])
           {
             group.push_back(z);
-            unassigned[z] = 0;
+            unassigned__[z] = 0;
           }
         }
         // move onto next ED in connected subset
@@ -141,7 +140,7 @@ void Map::config_update_()
 {
   // re-initialise constituency populations and county tallies
   for (int q = 0; q < Q_; q ++) q_pop_[q] = -av_pop_ * seats_[q];
-  q_cou_ = vector<vector<int>>(Q_, vector<int>(counties_, 0));
+  std::fill(q_cou_.begin(), q_cou_.end(), vector<int>(counties_, 0));
 
   // find each constituency's population, list of EDs, and county tally
   vector<vector<int>> disconnected(Q_, vector<int>(0));
@@ -152,7 +151,6 @@ void Map::config_update_()
     q_cou_[ED_q_[x]][ED_cou_[x]] ++;
   }
   // find connected subsets for each constituency
-  #pragma omp parallel for
   for (int q = 0; q < Q_; q ++) q_group_[q] = connect_(disconnected[q]);
 }
 void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector<vector<int>>& cngs, vector<int>& pqg_idxs, vector<vector<int>>& pngs)
@@ -189,7 +187,7 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
   q_cou_[prop][ED_cou_[x]] ++;
 }
 
-Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(populations.size()), total_pop_(std::accumulate(ED_pop_.begin(), ED_pop_.end(), 0)), EDs_(populations.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats.size()), total_seats_(std::accumulate(seats_.begin(), seats_.end(), 0)), av_pop_(double(total_pop_) / total_seats_), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
+Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(ED_pop_.size()), total_pop_(std::accumulate(ED_pop_.begin(), ED_pop_.end(), 0)), EDs_(ED_pop_.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats_.size()), total_seats_(std::accumulate(seats_.begin(), seats_.end(), 0)), av_pop_(double(total_pop_) / total_seats_), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_), q_cou_(Q_), unassigned__(EDs_, 0)
 {
   // seats: number of seats per constituency
   // populations/neighbours/counties: list of ED populations/neighbours/counties
