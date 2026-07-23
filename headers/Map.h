@@ -25,7 +25,7 @@ class Map
     // Integers represent index in the given list of seats per constituency.
     vector<int> ED_q_;
 
-    /* FIXED PARAMETERS*/
+    /* FIXED PARAMETERS */
     // Total population, number of EDs, number of borders between EDs, and number of counties.
     int total_pop_, EDs_, borders_, counties_;
     // Number of constituencies, number of seats, and average population per seat.
@@ -35,7 +35,7 @@ class Map
     // Used to propose a constituency at random for the Metropolis algorithm.
     std::uniform_int_distribution<int> int_dist_;
 
-    /* DYNAMIC PARAMETERS*/
+    /* DYNAMIC PARAMETERS */
     // Population of each constituency (minus ideal population, i.e. average population per constituency * number of seats in constituency).
     vector<double> q_pop_;
     // Connected subsets of each constituency.
@@ -44,10 +44,16 @@ class Map
     // Tally of number of EDs in each county for each constituency.
     vector<vector<int>> q_cou_;
 
+    /* TEMPORARY VARIABLES */
+    // Flags determining if an ED needs to be assigned to a group.
+    // Used in Map::connect_ when checking neighbours in a disconnected group.
+    mutable vector<int> unassigned__;
+
     // Return a vector of (geographically) connected subsets from a vector of EDs.
-    // Note: input vector will be empty at return.
-    // Also note: the ordering of subsets, and within each subset, is arbitrary.
-    vector<vector<int>> connect_(vector<int>& disconnected) const;
+    // Note: the ordering of subsets, and within each subset, is arbitrary.
+    // Also note: the use of unassign__ in this function makes it thread-unsafe, and unassign__ should always contain only zeroes at start and end of function.
+    // If this gets too complicated to manage then resort to declaring unassign inside the function.
+    vector<vector<int>> connect_(const vector<int>& disconnected) const;
 
     // Return the change to each Hamiltonian by changing an ED's constituency (from the current constituency/to a proposed constituency).
     // Also returns (by reference) some relevant quantities for site_update_().
