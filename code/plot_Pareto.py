@@ -27,7 +27,6 @@ for config_file in config_files:
         line = f.readline().replace("\n", "").split(",")
         while line[0] == "H":
             Hs = [float(H) for H in line[1:]]
-            # TODO save non-contiguous points, make transparent
             if Hs[1] == 0:
                 optimal_tuples[seat_config].add((Hs[0], Hs[2]))
             next(f)
@@ -88,13 +87,15 @@ for Pareto_front in Pareto_fronts:
     Pareto_tuples[Pareto_front] = sorted(Pareto_tuples[Pareto_front], key=lambda Pareto_front: Pareto_front[0])
 
 # Population vs compactness scatterplot, Pareto fronts
-colours = ["#004488", "#BB5566", "#DDAA33", "k"]
-colour_dict = {Pareto_front: colour for Pareto_front, colour in zip(Pareto_fronts, colours)}
+colours = ["#004488", "#BB5566", "#DDAA33"]
+linestyles = ["dotted", "dashed", "dashdot"]
+plot_dict = {seat_config: {"colour": colour, "linestyle": linestyle} for seat_config, colour, linestyle in zip(seat_configs, colours, linestyles)}
+plot_dict["all"] = {"colour": "k", "linestyle": "solid"}
 if actual_tuple:
-    plt.scatter(actual_tuple[0], actual_tuple[1], marker="*", color=colour_dict[actual_seat_config])
+    plt.scatter(actual_tuple[0], actual_tuple[1], marker="*", color=plot_dict[actual_seat_config]["colour"])
 for seat_config in seat_configs:
     optimal_xs, optimal_ys = ([optimal[z] for optimal in optimal_tuples[seat_config]] for z in range(2))
-    plt.scatter(optimal_xs, optimal_ys, marker=".", color=colour_dict[seat_config], label=seat_config)
+    plt.scatter(optimal_xs, optimal_ys, marker=".", color=plot_dict[seat_config]["colour"], label=seat_config)
 plt.xlabel(r"$H_P$")
 plt.xscale("log")
 plt.ylabel(r"$H_D$")
@@ -104,7 +105,7 @@ plt.ylim(ylim)
 for Pareto_front in Pareto_fronts:
     Pareto_tuples[Pareto_front] = [(Pareto_tuples[Pareto_front][0][0], ylim[1])] + Pareto_tuples[Pareto_front] + [(xlim[1], Pareto_tuples[Pareto_front][-1][1])]
     Pareto_xs, Pareto_ys = ([Pareto_tuple[z] for Pareto_tuple in Pareto_tuples[Pareto_front]] for z in range(2))
-    plt.plot(Pareto_xs, Pareto_ys, marker="", color=colour_dict[Pareto_front], linestyle="dashed" if Pareto_front == "all" else "solid", alpha=.5, zorder=.5)
+    plt.plot(Pareto_xs, Pareto_ys, marker="", color=plot_dict[Pareto_front]["colour"], linestyle=plot_dict[Pareto_front]["linestyle"], alpha=.5, zorder=.5)
 plt.legend()
 # TODO label/identify front points
 plt.savefig(os.path.join(Pareto_dir, "Pareto.pdf"), bbox_inches="tight")
