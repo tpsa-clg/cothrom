@@ -92,8 +92,8 @@ for Pareto_front in Pareto_fronts:
 # Population vs compactness scatterplot, Pareto fronts
 colours = ["#004488", "#BB5566", "#DDAA33"]
 linestyles = ["dotted", "dashed", "dashdot"]
-plot_dict = {seat_config: {"colour": colour, "linestyle": linestyle} for seat_config, colour, linestyle in zip(seat_configs, colours, linestyles)}
-plot_dict["all"] = {"colour": "k", "linestyle": "solid"}
+plot_dict = {seat_config: {"colour": colour, "linestyle": linestyle, "alpha": 1., "linewidth": 1., "zorder": 0.5} for seat_config, colour, linestyle in zip(seat_configs, colours, linestyles)}
+plot_dict["all"] = {"colour": "k", "linestyle": "solid", "alpha": .25, "linewidth": 2.5, "zorder": 0.49}
 if actual_tuple:
     plt.scatter(actual_tuple[0], actual_tuple[1], marker="*", color=plot_dict[actual_seat_config]["colour"])
 for seat_config, front_bool in it.product(seat_configs, [True, False]):
@@ -106,9 +106,12 @@ xlim, ylim = plt.gca().get_xlim(), plt.gca().get_ylim()
 plt.xlim(xlim)
 plt.ylim(ylim)
 for Pareto_front in Pareto_fronts:
-    Pareto_tuples[Pareto_front][True] = [(Pareto_tuples[Pareto_front][True][0][0], ylim[1])] + Pareto_tuples[Pareto_front][True] + [(xlim[1], Pareto_tuples[Pareto_front][True][-1][1])]
-    Pareto_xs, Pareto_ys = ([Pareto_tuple[z] for Pareto_tuple in Pareto_tuples[Pareto_front][True]] for z in range(2))
-    plt.plot(Pareto_xs, Pareto_ys, marker="", color=plot_dict[Pareto_front]["colour"], linestyle=plot_dict[Pareto_front]["linestyle"], alpha=.5, zorder=.5)
+    Pareto_tuples[Pareto_front][True] += [(xlim[1], Pareto_tuples[Pareto_front][True][-1][1])]
+    Pareto_line = [(Pareto_tuples[Pareto_front][True][0][0], ylim[1])]
+    for i in range(len(Pareto_tuples[Pareto_front][True]) - 1):
+        Pareto_line += [Pareto_tuples[Pareto_front][True][i], (Pareto_tuples[Pareto_front][True][i+1][0], Pareto_tuples[Pareto_front][True][i][1])]
+    Pareto_xs, Pareto_ys = ([Pareto_tuple[z] for Pareto_tuple in Pareto_line] for z in range(2))
+    plt.plot(Pareto_xs, Pareto_ys, marker="", color=plot_dict[Pareto_front]["colour"], linestyle=plot_dict[Pareto_front]["linestyle"], alpha=plot_dict[Pareto_front]["alpha"],  linewidth=plot_dict[Pareto_front]["linewidth"], zorder=plot_dict[Pareto_front]["zorder"])
 # TODO make legend manually
 # TODO label/identify front points
 plt.savefig(os.path.join(Pareto_dir, "Pareto.pdf"), bbox_inches="tight")
