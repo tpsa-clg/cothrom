@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 from glob import glob
+import itertools as it
 
 
 # Area name, number of seats, number of constituencies
@@ -48,24 +49,26 @@ with open(actual_file) as f:
 Pareto_tuples = {}
 for seat_config in seat_configs:
     optimal_tuples[seat_config] = list(optimal_tuples[seat_config])
-    Pareto_tuples[seat_config] = optimal_tuples[seat_config].copy()
+    Pareto_tuples[seat_config] = {True: optimal_tuples[seat_config].copy(), False: []}
     for i, this_tuple in enumerate(optimal_tuples[seat_config]):
-        if Pareto_tuples[seat_config][i] is None:
+        if Pareto_tuples[seat_config][True][i] is None:
             continue
-        for j, that_tuple in enumerate(Pareto_tuples[seat_config][i+1:], i+1):
+        for j, that_tuple in enumerate(Pareto_tuples[seat_config][True][i+1:], i+1):
             if that_tuple is None:
                 continue
             if this_tuple[0] <= that_tuple[0] and this_tuple[1] <= that_tuple[1]:
-                Pareto_tuples[seat_config][j] = None
+                Pareto_tuples[seat_config][True][j] = None
+                Pareto_tuples[seat_config][False].append(that_tuple)
             elif this_tuple[0] >= that_tuple[0] and this_tuple[1] >= that_tuple[1]:
-                Pareto_tuples[seat_config][i] = None
+                Pareto_tuples[seat_config][True][i] = None
+                Pareto_tuples[seat_config][False].append(this_tuple)
                 break
-    Pareto_tuples[seat_config] = [Pareto_tuple for Pareto_tuple in Pareto_tuples[seat_config] if Pareto_tuple is not None]
+    Pareto_tuples[seat_config][True] = [Pareto_tuple for Pareto_tuple in Pareto_tuples[seat_config][True] if Pareto_tuple is not None]
 
 # Getting Pareto front across all seat configurations
-Pareto_tuples["all"] = {seat_config: Pareto_tuples[seat_config].copy() for seat_config in seat_configs}
+Pareto_tuples["all"] = {seat_config: Pareto_tuples[seat_config][True].copy() for seat_config in seat_configs}
 for a, this_config in enumerate(seat_configs):
-    for i, this_tuple in enumerate(Pareto_tuples[this_config]):
+    for i, this_tuple in enumerate(Pareto_tuples[this_config][True]):
         if Pareto_tuples["all"][this_config][i] is None:
             continue
         for b, that_config in enumerate(seat_configs[a+1:], a+1):
@@ -79,12 +82,12 @@ for a, this_config in enumerate(seat_configs):
                     break
             if Pareto_tuples["all"][this_config][i] is None:
                 break
-Pareto_tuples["all"] = [Pareto_tuple for seat_config in seat_configs for Pareto_tuple in Pareto_tuples["all"][seat_config] if Pareto_tuple is not None]
+Pareto_tuples["all"] = {True: [Pareto_tuple for seat_config in seat_configs for Pareto_tuple in Pareto_tuples["all"][seat_config] if Pareto_tuple is not None]}
 
 # Ordering Pareto front points
 Pareto_fronts = seat_configs + ["all"] if len(seat_configs) > 1 else seat_configs
 for Pareto_front in Pareto_fronts:
-    Pareto_tuples[Pareto_front] = sorted(Pareto_tuples[Pareto_front], key=lambda Pareto_front: Pareto_front[0])
+    Pareto_tuples[Pareto_front][True] = sorted(Pareto_tuples[Pareto_front][True], key=lambda Pareto_front: Pareto_front[0])
 
 # Population vs compactness scatterplot, Pareto fronts
 colours = ["#004488", "#BB5566", "#DDAA33"]
@@ -93,9 +96,9 @@ plot_dict = {seat_config: {"colour": colour, "linestyle": linestyle} for seat_co
 plot_dict["all"] = {"colour": "k", "linestyle": "solid"}
 if actual_tuple:
     plt.scatter(actual_tuple[0], actual_tuple[1], marker="*", color=plot_dict[actual_seat_config]["colour"])
-for seat_config in seat_configs:
-    optimal_xs, optimal_ys = ([optimal[z] for optimal in optimal_tuples[seat_config]] for z in range(2))
-    plt.scatter(optimal_xs, optimal_ys, marker=".", color=plot_dict[seat_config]["colour"], label=seat_config)
+for seat_config, front_bool in it.product(seat_configs, [True, False]):
+    optimal_xs, optimal_ys = ([optimal[z] for optimal in Pareto_tuples[seat_config][front_bool]] for z in range(2))
+    plt.scatter(optimal_xs, optimal_ys, marker=".", color=plot_dict[seat_config]["colour"], alpha=1. if front_bool else .5, linewidths=0.)
 plt.xlabel(r"$H_P$")
 plt.xscale("log")
 plt.ylabel(r"$H_D$")
@@ -103,9 +106,9 @@ xlim, ylim = plt.gca().get_xlim(), plt.gca().get_ylim()
 plt.xlim(xlim)
 plt.ylim(ylim)
 for Pareto_front in Pareto_fronts:
-    Pareto_tuples[Pareto_front] = [(Pareto_tuples[Pareto_front][0][0], ylim[1])] + Pareto_tuples[Pareto_front] + [(xlim[1], Pareto_tuples[Pareto_front][-1][1])]
-    Pareto_xs, Pareto_ys = ([Pareto_tuple[z] for Pareto_tuple in Pareto_tuples[Pareto_front]] for z in range(2))
+    Pareto_tuples[Pareto_front][True] = [(Pareto_tuples[Pareto_front][True][0][0], ylim[1])] + Pareto_tuples[Pareto_front][True] + [(xlim[1], Pareto_tuples[Pareto_front][True][-1][1])]
+    Pareto_xs, Pareto_ys = ([Pareto_tuple[z] for Pareto_tuple in Pareto_tuples[Pareto_front][True]] for z in range(2))
     plt.plot(Pareto_xs, Pareto_ys, marker="", color=plot_dict[Pareto_front]["colour"], linestyle=plot_dict[Pareto_front]["linestyle"], alpha=.5, zorder=.5)
-plt.legend()
+# TODO make legend manually
 # TODO label/identify front points
 plt.savefig(os.path.join(Pareto_dir, "Pareto.pdf"), bbox_inches="tight")
