@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import sys
 import os
 from glob import glob
@@ -65,35 +66,14 @@ for seat_config in seat_configs:
                 break
     Pareto_tuples[seat_config][True] = [Pareto_tuple for Pareto_tuple in Pareto_tuples[seat_config][True] if Pareto_tuple is not None]
 
-# Getting Pareto front across all seat configurations
-Pareto_tuples["all"] = {seat_config: Pareto_tuples[seat_config][True].copy() for seat_config in seat_configs}
-for a, this_config in enumerate(seat_configs):
-    for i, this_tuple in enumerate(Pareto_tuples[this_config][True]):
-        if Pareto_tuples["all"][this_config][i] is None:
-            continue
-        for b, that_config in enumerate(seat_configs[a+1:], a+1):
-            for j, that_tuple in enumerate(Pareto_tuples["all"][that_config]):
-                if that_tuple is None:
-                    continue
-                if this_tuple[0] <= that_tuple[0] and this_tuple[1] <= that_tuple[1]:
-                    Pareto_tuples["all"][that_config][j] = None
-                elif this_tuple[0] >= that_tuple[0] and this_tuple[1] >= that_tuple[1]:
-                    Pareto_tuples["all"][this_config][i] = None
-                    break
-            if Pareto_tuples["all"][this_config][i] is None:
-                break
-Pareto_tuples["all"] = {True: [Pareto_tuple for seat_config in seat_configs for Pareto_tuple in Pareto_tuples["all"][seat_config] if Pareto_tuple is not None]}
-
 # Ordering Pareto front points
-Pareto_fronts = seat_configs + ["all"] if len(seat_configs) > 1 else seat_configs
-for Pareto_front in Pareto_fronts:
-    Pareto_tuples[Pareto_front][True] = sorted(Pareto_tuples[Pareto_front][True], key=lambda Pareto_front: Pareto_front[0])
+for seat_config in seat_configs:
+    Pareto_tuples[seat_config][True] = sorted(Pareto_tuples[seat_config][True], key=lambda Pareto_tuple: Pareto_tuple[0])
 
 # Population vs compactness scatterplot, Pareto fronts
 colours = ["#004488", "#BB5566", "#DDAA33"]
 linestyles = ["dotted", "dashed", "dashdot"]
-plot_dict = {seat_config: {"colour": colour, "linestyle": linestyle, "alpha": 1., "linewidth": 1., "zorder": 0.5} for seat_config, colour, linestyle in zip(seat_configs, colours, linestyles)}
-plot_dict["all"] = {"colour": "k", "linestyle": "solid", "alpha": .25, "linewidth": 2.5, "zorder": 0.49}
+plot_dict = {seat_config: {"colour": colour, "linestyle": linestyle} for seat_config, colour, linestyle in zip(seat_configs, colours, linestyles)}
 if actual_tuple:
     plt.scatter(actual_tuple[0], actual_tuple[1], marker="*", color=plot_dict[actual_seat_config]["colour"])
 for seat_config, front_bool in it.product(seat_configs, [True, False]):
@@ -105,13 +85,13 @@ plt.ylabel(r"$H_D$")
 xlim, ylim = plt.gca().get_xlim(), plt.gca().get_ylim()
 plt.xlim(xlim)
 plt.ylim(ylim)
-for Pareto_front in Pareto_fronts:
-    Pareto_tuples[Pareto_front][True] += [(xlim[1], Pareto_tuples[Pareto_front][True][-1][1])]
-    Pareto_line = [(Pareto_tuples[Pareto_front][True][0][0], ylim[1])]
-    for i in range(len(Pareto_tuples[Pareto_front][True]) - 1):
-        Pareto_line += [Pareto_tuples[Pareto_front][True][i], (Pareto_tuples[Pareto_front][True][i+1][0], Pareto_tuples[Pareto_front][True][i][1])]
+for seat_config in seat_configs:
+    Pareto_tuples[seat_config][True] += [(xlim[1], Pareto_tuples[seat_config][True][-1][1])]
+    Pareto_line = [(Pareto_tuples[seat_config][True][0][0], ylim[1])]
+    for i in range(len(Pareto_tuples[seat_config][True]) - 1):
+        Pareto_line += [Pareto_tuples[seat_config][True][i], (Pareto_tuples[seat_config][True][i+1][0], Pareto_tuples[seat_config][True][i][1])]
     Pareto_xs, Pareto_ys = ([Pareto_tuple[z] for Pareto_tuple in Pareto_line] for z in range(2))
-    plt.plot(Pareto_xs, Pareto_ys, marker="", color=plot_dict[Pareto_front]["colour"], linestyle=plot_dict[Pareto_front]["linestyle"], alpha=plot_dict[Pareto_front]["alpha"],  linewidth=plot_dict[Pareto_front]["linewidth"], zorder=plot_dict[Pareto_front]["zorder"])
-# TODO make legend manually
+    plt.plot(Pareto_xs, Pareto_ys, marker="", color=plot_dict[seat_config]["colour"], linestyle=plot_dict[seat_config]["linestyle"], zorder=.5)
+plt.legend(handles=[mlines.Line2D([], [], color=plot_dict[seat_config]["colour"], linestyle=plot_dict[seat_config]["linestyle"], marker='.', label=seat_config) for seat_config in seat_configs], fontsize="small")
 # TODO label/identify front points
 plt.savefig(os.path.join(Pareto_dir, "Pareto.pdf"), bbox_inches="tight")
