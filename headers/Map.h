@@ -40,13 +40,14 @@ class Map
     vector<double> q_pop_;
     // Connected subsets of each constituency.
     // A constituency is contiguous when it has one connected subset.
-    vector<vector<vector<int>>> q_group_;
+    vector<vector<vector<int>>> q_groups_;
     // Tally of number of EDs in each county for each constituency.
     vector<vector<int>> q_cou_;
 
     /* TEMPORARY VARIABLES */
     // Flags determining if an ED needs to be assigned to a group.
     // Used in Map::connect_ when checking neighbours in a disconnected group.
+    // TODO check after each sweep/temperature if unassigned__ is full of zeroes
     mutable vector<int> unassigned__;
 
     // Return a vector of (geographically) connected subsets from a vector of EDs.
@@ -64,7 +65,7 @@ class Map
     // Only used at construction and manual configuration changes.
     void config_update_();
 
-    // Update an ED's constituency and makes corresponding population & connected subset changes.
+    // Update an ED's constituency and make corresponding population & connected subset changes.
     // Used after each acceptance in the MCMC algorithms.
     void site_update_(const int& x, const int& prop, const int& cqg_idx, vector<vector<int>>& cngs, vector<int>& pqg_idxs, vector<vector<int>>& pngs);
   public:
