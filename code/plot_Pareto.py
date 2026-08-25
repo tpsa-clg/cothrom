@@ -78,20 +78,22 @@ if actual_tuple:
     plt.scatter(actual_tuple[0], actual_tuple[1], marker="*", color=plot_dict[actual_seat_config]["colour"])
 for seat_config, front_bool in it.product(seat_configs, [True, False]):
     optimal_xs, optimal_ys = ([optimal[z] for optimal in Pareto_tuples[seat_config][front_bool]] for z in range(2))
-    plt.scatter(optimal_xs, optimal_ys, marker=".", color=plot_dict[seat_config]["colour"], alpha=1. if front_bool else .5, linewidths=0.)
+    if front_bool:
+        plt.step(optimal_xs, optimal_ys, where="post", marker="o", color=plot_dict[seat_config]["colour"], linestyle=plot_dict[seat_config]["linestyle"], label=seat_config)
+    else:
+        plt.scatter(optimal_xs, optimal_ys, marker=".", color=plot_dict[seat_config]["colour"], alpha=.5, linewidths=0.)
 plt.xlabel(r"$H_P$")
 plt.xscale("log")
 plt.ylabel(r"$H_D$")
 xlim, ylim = plt.gca().get_xlim(), plt.gca().get_ylim()
 plt.xlim(xlim)
 plt.ylim(ylim)
+ax = plt.gca()
 for seat_config in seat_configs:
-    Pareto_tuples[seat_config][True] += [(xlim[1], Pareto_tuples[seat_config][True][-1][1])]
-    Pareto_line = [(Pareto_tuples[seat_config][True][0][0], ylim[1])]
-    for i in range(len(Pareto_tuples[seat_config][True]) - 1):
-        Pareto_line += [Pareto_tuples[seat_config][True][i], (Pareto_tuples[seat_config][True][i+1][0], Pareto_tuples[seat_config][True][i][1])]
-    Pareto_xs, Pareto_ys = ([Pareto_tuple[z] for Pareto_tuple in Pareto_line] for z in range(2))
-    plt.plot(Pareto_xs, Pareto_ys, marker="", color=plot_dict[seat_config]["colour"], linestyle=plot_dict[seat_config]["linestyle"], zorder=.5)
-plt.legend(handles=[mlines.Line2D([], [], color=plot_dict[seat_config]["colour"], linestyle=plot_dict[seat_config]["linestyle"], marker='.', label=seat_config) for seat_config in seat_configs], fontsize="small")
+    left_point = Pareto_tuples[seat_config][True][0]
+    ax.vlines(x=left_point[0], ymin=left_point[1], ymax=ylim[1], color=plot_dict[seat_config]["colour"], linestyle=plot_dict[seat_config]["linestyle"])
+    bottom_point = Pareto_tuples[seat_config][True][-1]
+    ax.hlines(y=bottom_point[1], xmin=bottom_point[0], xmax=xlim[1], color=plot_dict[seat_config]["colour"], linestyle=plot_dict[seat_config]["linestyle"])
+plt.legend(fontsize="small")
 # TODO label/identify front points
 plt.savefig(os.path.join(Pareto_dir, "Pareto.pdf"), bbox_inches="tight")
