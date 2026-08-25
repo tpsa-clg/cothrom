@@ -8,11 +8,13 @@ import os
 from glob import glob
 
 
-# Directories, config file ID
+# Area name, configuration ID
 area_name = sys.argv[1]
+config_id = sys.argv[2]
+
+# Directories
 data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir, "data"])
 area_dir = os.path.join(data_dir, area_name)
-config_id = sys.argv[2]
 
 # Splitting geographical data into area of consideration and surroundings
 config_gdf = gpd.read_file(os.path.join(data_dir, "100m.geojson"))[["ED_GUID", "geometry"]].rename(columns={"ED_GUID": "GUID"})
@@ -22,8 +24,10 @@ config_gdf = config_gdf.set_index("GUID").loc[GUIDs].reset_index()
 
 # Reading configuration data
 config_file = glob(os.path.join(area_dir, f"**/*{config_id}*.csv"), recursive=True)
+if len(config_file) == 0:
+    raise FileNotFoundError(f"No configuration file found with ID {config_id}.")
 if len(config_file) > 1:
-    raise ValueError(f"Multiple existing files with ID {config_id}")
+    raise ValueError(f"Multiple existing configuration files with ID {config_id}.")
 config_file = config_file[0]
 actual = "actual.csv" in config_file
 config_dir = os.path.dirname(config_file)

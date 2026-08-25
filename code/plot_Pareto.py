@@ -7,13 +7,13 @@ import itertools as it
 
 
 # Area name, number of seats, number of constituencies
-area = sys.argv[1]
+area_name = sys.argv[1]
 seats = int(sys.argv[2])
 constituencies = int(sys.argv[3])
 
 # Directories
 data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir, "data"])
-area_dir = os.path.join(data_dir, area)
+area_dir = os.path.join(data_dir, area_name)
 Pareto_dir = os.path.join(area_dir, f"{seats}_{constituencies}")
 
 # Loading configurations and Hamiltonians

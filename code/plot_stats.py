@@ -7,16 +7,20 @@ import os
 from glob import glob
 
 
-# Directories, config file ID
+# Area name, configuration ID
 area_name = sys.argv[1]
+config_id = sys.argv[2]
+
+# Directories
 data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir, "data"])
 area_dir = os.path.join(data_dir, area_name)
-config_id = sys.argv[2]
 
 # Getting metadata
 config_file = glob(os.path.join(area_dir, f"**/*{config_id}*.csv"), recursive=True)
+if len(config_file) == 0:
+    raise FileNotFoundError(f"No configuration file found with ID {config_id}.")
 if len(config_file) > 1:
-    raise ValueError(f"Multiple existing files with ID {config_id}")
+    raise ValueError(f"Multiple existing configuration files with ID {config_id}.")
 config_file = config_file[0]
 config_dir = os.path.dirname(config_file)
 with open(config_file) as f:
@@ -39,6 +43,7 @@ MCMC_data = pd.read_csv(config_file, skiprows=7+2*degeneracy)
 betas = np.array(1. / MCMC_data["T"])
 runtimes = MCMC_data["time"]
 objectives = ["Combination", "Population", "Contiguity", "Compactness", "Counties", "Acceptance Rate"]
+# TODO change \alpha for acceptance rate
 obj_dict = {objective: {"csv_tag": tag, "normalisation": normalisation, "LaTeX": LaTeX}
             for objective, tag, normalisation, LaTeX in zip(
                 objectives,
@@ -66,6 +71,7 @@ data_dict = {objective: {
 del MCMC_data
 
 # Plotting objectives (combination, population, contiguity, compactness, counties, acceptance) for each observable (energy/expectation value, heat capacity/variance*beta**2, autocorrelation time)
+# TODO remove titles
 pdf = mpdf.PdfPages(os.path.join(config_dir, f"Objectives_per_observable_{config_id}.pdf"))
 for observable in observables:
     fig, ax = plt.subplots()
@@ -94,6 +100,7 @@ for observable in observables:
 pdf.close()
 
 # Plotting observables for each objective (energy/expectation value, heat capacity/variance*beta**2, autocorrelation time)
+# TODO change yaxis to LaTeX
 colours = ["#004488", "#BB5566", "#DDAA33", "k"]
 pdf = mpdf.PdfPages(os.path.join(config_dir, f"Observables_per_objective_{config_id}.pdf"))
 for objective in objectives:
