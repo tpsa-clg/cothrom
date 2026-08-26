@@ -25,7 +25,7 @@ config_file = config_file[0]
 config_dir = os.path.dirname(config_file)
 with open(config_file) as f:
     next(f)
-    next(f)
+    N = int(f.readline().split(",")[1])
     couplings = [float(j) for j in f.readline().replace("\n", "").split(",")[1:]]
     norms = [float(z) for z in f.readline().replace("\n", "").split(",")[1:]]
     next(f)
@@ -40,9 +40,10 @@ with open(config_file) as f:
 
 # Loading and re-organising MCMCSA data
 MCMC_data = pd.read_csv(config_file, skiprows=7+2*degeneracy)
-betas = np.array(1. / MCMC_data["T"])
-acceptance_rates, acceptance_rate_errs = MCMC_data["acc"], MCMC_data["acc_err"]
-runtimes = MCMC_data["time"]
+temps = MCMC_data["T"].values
+runtimes = MCMC_data["time"].values / 1000.
+accepts_per_sweep, accepts_per_sweep_err = (MCMC_data[f"acc{subkey}"].values for subkey in ["", "_err"])
+betas = np.array(1. / temps)
 objectives = ["Combination",
               "Population",
               "Contiguity",
@@ -67,16 +68,16 @@ observables = ["Energy",
                "Autocorrelation Time"]
 data_dict = {objective: {
     "Energy": {
-        "estimate": MCMC_data[f"{obj_dict[objective]['csv_tag']}"]/obj_dict[objective]["normalisation"],
-        "error": MCMC_data[f"{obj_dict[objective]['csv_tag']}_err"]/obj_dict[objective]["normalisation"],
+        "estimate": MCMC_data[f"{obj_dict[objective]['csv_tag']}"].values / obj_dict[objective]["normalisation"],
+        "error": MCMC_data[f"{obj_dict[objective]['csv_tag']}_err"].values / obj_dict[objective]["normalisation"],
         "label": rf"$E_{obj_dict[objective]['LaTeX']}$"},
     "Heat Capacity": {
-        "estimate": MCMC_data[f"{obj_dict[objective]['csv_tag']}_var"]*(betas/obj_dict[objective]["normalisation"])**2,
-        "error": MCMC_data[f"{obj_dict[objective]['csv_tag']}_var_err"]*(betas/obj_dict[objective]["normalisation"])**2,
+        "estimate": MCMC_data[f"{obj_dict[objective]['csv_tag']}_var"].values * (betas / obj_dict[objective]["normalisation"])**2,
+        "error": MCMC_data[f"{obj_dict[objective]['csv_tag']}_var_err"].values * (betas / obj_dict[objective]["normalisation"])**2,
         "label": rf"$C_{obj_dict[objective]['LaTeX']}$"},
     "Autocorrelation Time": {
-        "estimate": MCMC_data[f"{obj_dict[objective]['csv_tag']}_tau"],
-        "error": MCMC_data[f"{obj_dict[objective]['csv_tag']}_tau_err"],
+        "estimate": MCMC_data[f"{obj_dict[objective]['csv_tag']}_tau"].values,
+        "error": MCMC_data[f"{obj_dict[objective]['csv_tag']}_tau_err"].values,
         "label": rf"$\tau_{{E_{obj_dict[objective]['LaTeX']}}}$"}
         } for objective in objectives}
 del MCMC_data
@@ -90,8 +91,8 @@ for observable in observables:
     ax.set_xscale("log")
     ax.set_xlim(betas[0], betas[-1])
     ax.set_xlabel(r"$\beta$")
-    # if observable == "Autocorrelation Time":
-    #     ax.set_yscale("log")
+    secax = ax.secondary_xaxis("top", functions=(lambda beta: 1. / beta, lambda T: 1. / T))
+    secax.set_xlabel(r"$T$")
     for objective in objectives:
         if [err for err in data_dict[objective][observable]["error"] if err == err]:
             _, __, bars = ax.errorbar(betas,
@@ -123,6 +124,8 @@ for objective in objectives:
     ax.set_xscale("log")
     ax.set_xlim(betas[0], betas[-1])
     ax.set_xlabel(r"$\beta$")
+    secax = ax.secondary_xaxis("top", functions=(lambda beta: 1. / beta, lambda T: 1. / T))
+    secax.set_xlabel(r"$T$")
     lines, labels = ([] for _ in range(2))
     for o, observable in enumerate(observables):
         if o == 0:
@@ -159,12 +162,50 @@ for objective in objectives:
     plt.close(fig)
 pdf.close()
 
-# Plotting runtime
-# TODO plot acceptance rate here
-plt.xscale("log")
-plt.xlim(betas[0], betas[-1])
-plt.xlabel(r"$\beta$")
-plt.ylabel("Milliseconds")
-plt.plot(betas, runtimes)
-plt.savefig(os.path.join(config_dir, f"runtime_vs_β_{config_id}.pdf"))
-plt.close()
+# Plotting runtime and acceptance rate
+pdf = mpdf.PdfPages(os.path.join(config_dir, f"Runtime_Acceptance_{config_id}.pdf"))
+for i in range(2):
+    fig, ax = plt.subplots()
+    ax.set_xscale("log")
+    ax.set_xlim(betas[0], betas[-1])
+    ax.set_xlabel(r"$\beta$")
+    ax.yaxis.label.set_color("r")
+    secax = ax.secondary_xaxis("top", functions=(lambda beta: 1. / beta, lambda T: 1. / T))
+    secax.set_xlabel(r"$T$")
+    ax2 = ax.twinx()
+    ax2.yaxis.label.set_color("b")
+    if i == 0:
+        ax.set_ylabel("Runtime per sweep, s")
+        ax.plot(betas,
+                runtimes,
+                linestyle="",
+                marker=".",
+                color="r",
+                label=r"$t$")
+        acceptance_rates, acceptance_rates_err = (arr / EDs for arr in [accepts_per_sweep, accepts_per_sweep_err])
+        ax2.set_ylabel("Acceptance rate per sweep")
+        ax2.errorbar(betas,
+                     acceptance_rates,
+                     yerr=acceptance_rates_err,
+                     linestyle="",
+                     marker=".",
+                     color="b",
+                     label=r"$\langle r\rangle$")
+    elif i == 1:
+        total_runtimes = np.cumsum(runtimes)
+        ax.set_ylabel("Total runtime, s")
+        ax.plot(betas,
+                total_runtimes,
+                color="r",
+                label=r"$t$")
+        total_accepted = np.cumsum(N * accepts_per_sweep)
+        ax2.set_ylabel("Total accepted changes")
+        ax2.plot(betas,
+                 total_accepted,
+                 color="b",
+                 label="no. changes")
+        ax.set_ylim(bottom=0.)
+        ax2.set_ylim(bottom=0.)
+    pdf.savefig(fig, bbox_inches="tight")
+    plt.close(fig)
+pdf.close()
