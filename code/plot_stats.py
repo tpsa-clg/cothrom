@@ -100,18 +100,13 @@ for observable in observables:
     ax.set_ylim(ax.get_ylim())
     for objective in objectives:
         if [err for err in data_dict[objective][observable]["error"] if err == err]:
-            _, __, bars = ax.errorbar(betas,
-                                      data_dict[objective][observable]["estimate"],
-                                      yerr=data_dict[objective][observable]["error"],
-                                      color=obj_dict[objective]["colour"],
-                                      linestyle="",
-                                      marker=".",
-                                      label=data_dict[objective][observable]["label"])
+            _, __, bars = ax.errorbar(
+                betas, data_dict[objective][observable]["estimate"], yerr=data_dict[objective][observable]["error"],
+                color=obj_dict[objective]["colour"], linestyle="", marker=".", label=data_dict[objective][observable]["label"])
         else:
-            ax.scatter(betas,
-                       data_dict[objective][observable]["estimate"],
-                       marker=".",
-                       label=data_dict[objective][observable]["label"])
+            ax.scatter(
+                betas, data_dict[objective][observable]["estimate"],
+                marker=".", label=data_dict[objective][observable]["label"])
     ax.legend()
     pdf.savefig(fig, bbox_inches="tight")
     plt.close(fig)
@@ -121,95 +116,71 @@ pdf.close()
 obs_colours = ["#004488", "#BB5566", "#DDAA33"]
 pdf = mpdf.PdfPages(os.path.join(config_dir, f"Observables_per_objective_{config_id}.pdf"))
 for objective in objectives:
-    fig, ax = plt.subplots()
-    ax.set_xscale("log")
-    ax.set_xlim(betas[0], betas[-1])
-    ax.set_xlabel(r"$\beta$")
-    secax = ax.secondary_xaxis("top", functions=(lambda beta: 1. / beta, lambda T: 1. / T))
-    secax.set_xlabel(r"$T$")
-    lines, labels = ([] for _ in range(2))
-    for o, observable in enumerate(observables):
-        if o == 0:
-            obs_ax = ax
-        else:
-            obs_ax = ax.twinx()
-            if o > 1:
-                obs_ax.spines['right'].set_position(('outward', 60))
+    fig, ax = plt.subplots(len(observables), 1, figsize=(8, 4*len(observables)), sharex=True)
+    ax[-1].set_xscale("log")
+    ax[-1].set_xlim(betas[0], betas[-1])
+    ax[-1].set_xlabel(r"$\beta$")
+    secax = []
+    for i, observable in enumerate(observables):
+        secax.append(ax[i].secondary_xaxis(
+            "top", functions=(lambda beta: 1. / beta, lambda T: 1. / T)))
         if observable == "Autocorrelation Time":
-            obs_ax.set_yscale("log")
-        obs_ax.plot([
-            min(data_dict[objective][observable]["estimate"]),
-            max(data_dict[objective][observable]["estimate"] + data_dict[objective][observable]["error"])
-            ], linestyle="", marker="", alpha=0.)
-        obs_ax.set_ylim(obs_ax.get_ylim())
-        obs_ax.set_ylabel(observable)
-        obs_ax.yaxis.label.set_color(obs_colours[o])
+            ax[i].set_yscale("log")
+            ax[i].plot([
+                min(data_dict[objective][observable]["estimate"]),
+                max(data_dict[objective][observable]["estimate"] + data_dict[objective][observable]["error"])
+                ], linestyle="", marker="", alpha=0.)
+            ax[i].set_ylim(ax[i].get_ylim())
+        ax[i].set_ylabel(observable)
+        ax[i].yaxis.label.set_color(obs_colours[i])
         if [err for err in data_dict[objective][observable]["error"] if err == err]:
-            _, __, bars = obs_ax.errorbar(betas,
-                                          data_dict[objective][observable]["estimate"],
-                                          yerr=data_dict[objective][observable]["error"],
-                                          color=obs_colours[o],
-                                          linestyle="",
-                                          marker=".",
-                                          label=data_dict[objective][observable]["label"])
+            _, __, bars = ax[i].errorbar(
+                betas, data_dict[objective][observable]["estimate"], yerr=data_dict[objective][observable]["error"],
+                color=obs_colours[i], linestyle="", marker=".", label=data_dict[objective][observable]["label"])
         else:
-            obs_ax.scatter(betas,
-                           data_dict[objective][observable]["estimate"],
-                           color=obs_colours[o],
-                           marker=".",
-                           label=data_dict[objective][observable]["label"])
-        line, label = obs_ax.get_legend_handles_labels()
-        lines += line
-        labels += label
-    obs_ax.legend(lines, labels, fontsize="small")
+            ax[i].scatter(
+                betas, data_dict[objective][observable]["estimate"],
+                color=obs_colours[i], marker=".", label=data_dict[objective][observable]["label"])
+        ax[i].legend()
+    secax[0].set_xlabel(r"$T$")
+    for i in range(1, len(observables)):
+        secax[i].set_xticks([])
     pdf.savefig(fig, bbox_inches="tight")
     plt.close(fig)
 pdf.close()
 
 # Plotting runtime and acceptance rate
 pdf = mpdf.PdfPages(os.path.join(config_dir, f"Runtime_Acceptance_{config_id}.pdf"))
-for i in range(2):
-    fig, ax = plt.subplots()
-    ax.set_xscale("log")
-    ax.set_xlim(betas[0], betas[-1])
-    ax.set_xlabel(r"$\beta$")
-    ax.yaxis.label.set_color("r")
-    secax = ax.secondary_xaxis("top", functions=(lambda beta: 1. / beta, lambda T: 1. / T))
-    secax.set_xlabel(r"$T$")
-    ax2 = ax.twinx()
-    ax2.yaxis.label.set_color("b")
-    if i == 0:
-        ax.set_ylabel("Runtime per sweep, s")
-        ax.plot(betas,
-                runtimes,
-                linestyle="",
-                marker=".",
-                color="r",
-                label=r"$t$")
+for page in range(2):
+    fig, ax = plt.subplots(2, 1, sharex=True)
+    ax[1].set_xscale("log")
+    ax[1].set_xlim(betas[0], betas[-1])
+    ax[1].set_xlabel(r"$\beta$")
+    secax = []
+    for i, colour in enumerate(["r", "b"]):
+        ax[i].yaxis.label.set_color(colour)
+        secax.append(ax[i].secondary_xaxis("top", functions=(lambda beta: 1. / beta, lambda T: 1. / T)))
+    secax[0].set_xlabel(r"$T$")
+    secax[1].set_xticks([])
+    if page == 0:
+        ax[0].set_ylabel("Runtime per sweep, s")
+        ax[0].scatter(betas, runtimes,
+                      marker=".", color="r", label=r"$t$")
         acceptance_rates, acceptance_rates_err = (arr / EDs for arr in [accepts_per_sweep, accepts_per_sweep_err])
-        ax2.set_ylabel("Acceptance rate per sweep")
-        ax2.errorbar(betas,
-                     acceptance_rates,
-                     yerr=acceptance_rates_err,
-                     linestyle="",
-                     marker=".",
-                     color="b",
-                     label=r"$\langle r\rangle$")
-    elif i == 1:
+        ax[1].set_ylabel("Acceptance rate per sweep")
+        ax[1].errorbar(betas, acceptance_rates, yerr=acceptance_rates_err,
+                       linestyle="", marker=".", color="b", label=r"$\langle r\rangle$")
+    elif page == 1:
         total_runtimes = np.cumsum(runtimes)
-        ax.set_ylabel("Total runtime, s")
-        ax.plot(betas,
-                total_runtimes,
-                color="r",
-                label=r"$t$")
+        ax[0].set_ylabel("Total runtime, s")
+        ax[0].plot(betas, total_runtimes,
+                   color="r", label=r"$t$")
         total_accepted = np.cumsum(N * accepts_per_sweep)
-        ax2.set_ylabel("Total accepted changes")
-        ax2.plot(betas,
-                 total_accepted,
-                 color="b",
-                 label="no. changes")
-        ax.set_ylim(bottom=0.)
-        ax2.set_ylim(bottom=0.)
+        ax[1].set_ylabel("Total accepted changes")
+        ax[1].plot(betas, total_accepted,
+                   color="b", label="no. changes")
+        # ax.set_ylim(bottom=0.)
+        # ax2.set_ylim(bottom=0.)
     pdf.savefig(fig, bbox_inches="tight")
     plt.close(fig)
 pdf.close()
