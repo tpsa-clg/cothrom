@@ -81,8 +81,6 @@ data_dict = {objective: {
         "label": rf"$\tau_{{E_{obj_dict[objective]['LaTeX']}}}$"}
         } for objective in objectives}
 del MCMC_data
-for objective in objectives:
-    data_dict[objective]["Autocorrelation Time"]["estimate"] = [max(estimate, 1.) for estimate in data_dict[objective]["Autocorrelation Time"]["estimate"]]
 
 # Plotting objectives (combination, population, contiguity, compactness, counties) for each observable (energy/expectation value, heat capacity/variance*beta**2, autocorrelation time)
 pdf = mpdf.PdfPages(os.path.join(config_dir, f"Objectives_per_observable_{config_id}.pdf"))
@@ -93,6 +91,13 @@ for observable in observables:
     ax.set_xlabel(r"$\beta$")
     secax = ax.secondary_xaxis("top", functions=(lambda beta: 1. / beta, lambda T: 1. / T))
     secax.set_xlabel(r"$T$")
+    if observable == "Autocorrelation Time":
+        ax.set_yscale("log")
+    ax.plot([
+        min([min(data_dict[objective][observable]["estimate"]) for objective in objectives]),
+        max([max(data_dict[objective][observable]["estimate"] + data_dict[objective][observable]["error"]) for objective in objectives])
+        ], linestyle="", marker="", alpha=0.)
+    ax.set_ylim(ax.get_ylim())
     for objective in objectives:
         if [err for err in data_dict[objective][observable]["error"] if err == err]:
             _, __, bars = ax.errorbar(betas,
@@ -102,10 +107,6 @@ for observable in observables:
                                       linestyle="",
                                       marker=".",
                                       label=data_dict[objective][observable]["label"])
-            if observable == "Autocorrelation Time":
-                ax.set_ylim(bottom=0.)
-                for bar in bars:
-                    bar.set_alpha(.5)
         else:
             ax.scatter(betas,
                        data_dict[objective][observable]["estimate"],
@@ -134,6 +135,13 @@ for objective in objectives:
             obs_ax = ax.twinx()
             if o > 1:
                 obs_ax.spines['right'].set_position(('outward', 60))
+        if observable == "Autocorrelation Time":
+            obs_ax.set_yscale("log")
+        obs_ax.plot([
+            min(data_dict[objective][observable]["estimate"]),
+            max(data_dict[objective][observable]["estimate"] + data_dict[objective][observable]["error"])
+            ], linestyle="", marker="", alpha=0.)
+        obs_ax.set_ylim(obs_ax.get_ylim())
         obs_ax.set_ylabel(observable)
         obs_ax.yaxis.label.set_color(obs_colours[o])
         if [err for err in data_dict[objective][observable]["error"] if err == err]:
@@ -144,10 +152,6 @@ for objective in objectives:
                                           linestyle="",
                                           marker=".",
                                           label=data_dict[objective][observable]["label"])
-            if observable == "Autocorrelation Time":
-                obs_ax.set_ylim(bottom=0.)
-                for bar in bars:
-                    bar.set_alpha(.5)
         else:
             obs_ax.scatter(betas,
                            data_dict[objective][observable]["estimate"],
