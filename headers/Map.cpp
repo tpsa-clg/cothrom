@@ -10,43 +10,50 @@ using std::valarray;
 std::mt19937 r(1234);
 std::uniform_real_distribution<double> standard_uniform(0., 1.);
 
-vector<vector<int>> Map::connect_(vector<int>& disconnected) const
+vector<vector<int>> Map::connect_(const vector<int>& disconnected) const
 {
   // disconnected: a list of EDs that we want to split into connected subsets, i.e. the contiguous parts
 
+  // create a list of "booleans" determining if an ED needs to be assigned to a connected subset
+  for (int i = 0; i < disconnected.size(); i ++)
+  {
+    int x = disconnected[i];
+    unassigned__[x] = 1;
+  }
   // create an empty list of lists, where connected[i] will give the i-th connected subset of the input ED list
   vector<vector<int>> connected(0);
-  // iterate until our list of EDs is empty, i.e. until we have assigned each ED to a connected subset
-  while (not disconnected.empty())
+
+  // iterate through our list of EDs
+  for (int i = 0; i < disconnected.size(); i ++)
   {
-    // pick an arbitrary element of the remaining list of EDs - here we choose the last element of the list
-    // we will then create the connected subset to which this ED belongs
-    vector<int> group = { disconnected.back() };
-    disconnected.pop_back();
-    // iterate over EDs in connected subset (breadth-first) until no more neighbours can be added
-    int i = 0;
-    while (i < group.size())
+    int x = disconnected[i];
+    // if an ED in our list hasn't been added to a connected subset, add it to a new one and mark it as assigned
+    if (unassigned__[x])
     {
-      int x = group[i];
-      // iterate over ED's neighbours
-      for (int j = 0; j < ED_nei_[x].size(); j ++)
+      vector<int> group = { x };
+      unassigned__[x] = 0;
+      // iterate over EDs in connected subset (breadth-first) until no more neighbours can be added
+      int j = 0;
+      while (j < group.size())
       {
-        int y = ED_nei_[x][j];
-        // find location of neighbour in list of remaining EDs
-        // if it == disconnected.end() then the neighbour is not in list (and thus is already in our connected subset list or was never in the original list of EDs)
-        // otherwise we move it into our connected subset of EDs
-        vector<int>::iterator it = std::find(disconnected.begin(), disconnected.end(), y);
-        if (it != disconnected.end())
+        int y = group[j];
+        // iterate over ED's neighbours
+        for (int k = 0; k < ED_nei_[y].size(); k ++)
         {
-          group.push_back(y);
-          disconnected.erase(it);
+          int z = ED_nei_[y][k];
+          // if neighbour needs to be added to a connected subset, add it and mark it as assigned
+          if (unassigned__[z])
+          {
+            group.push_back(z);
+            unassigned__[z] = 0;
+          }
         }
+        // move onto next ED in connected subset
+        j ++;
       }
-      // move onto next ED in connected subset
-      i ++;
+      // append this connected subset into our list of connected subsets
+      connected.push_back(group);
     }
-    // append this connected subset into our list of connected subsets
-    connected.push_back(group);
   }
   return connected;
 }
@@ -54,7 +61,7 @@ vector<vector<int>> Map::connect_(vector<int>& disconnected) const
 valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const
 {
   // x: ED index
-  // cqg_idx: index of x's connected subset in q_group_[curr]
+  // cqg_idx: index of x's connected subset in q_groups_[curr]
   // cngs: the connected subsets that would result from removing x from its current constituency
 
   // current constituency of x
@@ -63,15 +70,16 @@ valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int
   // connected subset to which x belongs
   vector<int> cxg;
   // iterate over connected subsets until we locate the one containing x
-  for (cqg_idx = 0; cqg_idx < q_group_[curr].size(); cqg_idx ++)
+  for (cqg_idx = 0; cqg_idx < q_groups_[curr].size(); cqg_idx ++)
   {
-    cxg = q_group_[curr][cqg_idx];
+    cxg = q_groups_[curr][cqg_idx];
     // find index of x's connected subset and remove x
     // note that we are not updating any private variables
     vector<int>::iterator it = std::find(cxg.begin(), cxg.end(), x);
     if (it != cxg.end())
     {
-      cxg.erase(it);
+      *it = cxg.back();
+      cxg.pop_back();
       break;
     }
   }
@@ -89,11 +97,11 @@ valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int
   if (tmp_county_tally[ED_cou_[x]] < *std::max_element(tmp_county_tally.begin(), tmp_county_tally.end())) deltaHB_curr --;
 
   // return the changes to the population, contiguity, and compactness Hamiltonians
-  return valarray<double>{ (abs(q_pop_[curr] - ED_pop_[x]) - abs(q_pop_[curr]))/(seats_[curr] * av_pop_), fabs(q_group_[curr].size() + cngs.size() - 2.) - q_group_[curr].size() + 1, double(deltaHD_curr), double(deltaHB_curr) };
+  return valarray<double>{ (abs(q_pop_[curr] - ED_pop_[x]) - abs(q_pop_[curr]))/(seats_[curr] * av_pop_), fabs(q_groups_[curr].size() + cngs.size() - 2.) - q_groups_[curr].size() + 1, double(deltaHD_curr), double(deltaHB_curr) };
 }
 valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const
 {
-  // pqg_idxs: indexes of x's neighbours' connected subsets in q_group_[prop]
+  // pqg_idxs: indexes of x's neighbours' connected subsets in q_groups_[prop]
   // pngs: connected subsets to which x's neighbours in the proposed constituency belong
 
   // iterate over neighbours of x
@@ -101,9 +109,9 @@ valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& p
   {
     int y = ED_nei_[x][i];
     // if neighbour is in proposed constituency, find its connected subset
-    if (ED_q_[y] == prop) for (int g = 0; g < q_group_[prop].size(); g ++)
+    if (ED_q_[y] == prop) for (int g = 0; g < q_groups_[prop].size(); g ++)
     {
-      vector<int> group = q_group_[prop][g];
+      vector<int> group = q_groups_[prop][g];
       if (std::find(group.begin(), group.end(), y) != group.end())
       {
         // append connected subset (index + subset) to lists if we haven't already
@@ -126,26 +134,26 @@ valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& p
   if (q_cou_[prop][ED_cou_[x]] != *std::max_element(q_cou_[prop].begin(), q_cou_[prop].end())) deltaHB_prop ++;
 
   // return the changes to the population, contiguity, and compactness Hamiltonians
-  return valarray<double>{ (abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/(seats_[prop] * av_pop_), q_group_[prop].size() - pngs.size() - fabs(q_group_[prop].size() - 1.), double(deltaHD_prop), double(deltaHB_prop) };
+  return valarray<double>{ (abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/(seats_[prop] * av_pop_), q_groups_[prop].size() - pngs.size() - fabs(q_groups_[prop].size() - 1.), double(deltaHD_prop), double(deltaHB_prop) };
 }
 
 void Map::config_update_()
 {
   // re-initialise constituency populations and county tallies
   for (int q = 0; q < Q_; q ++) q_pop_[q] = -av_pop_ * seats_[q];
-  q_cou_ = vector<vector<int>>(Q_, vector<int>(counties_, 0));
+  std::fill(q_cou_.begin(), q_cou_.end(), vector<int>(counties_, 0));
 
   // find each constituency's population, list of EDs, and county tally
   vector<vector<int>> disconnected(Q_, vector<int>(0));
   for (int x = 0; x < EDs_; x ++)
   {
-    q_pop_[ED_q_[x]] += ED_pop_[x];
-    disconnected[ED_q_[x]].push_back(x);
-    q_cou_[ED_q_[x]][ED_cou_[x]] ++;
+    int q = ED_q_[x];
+    q_pop_[q] += ED_pop_[x];
+    disconnected[q].push_back(x);
+    q_cou_[q][ED_cou_[x]] ++;
   }
   // find connected subsets for each constituency
-  #pragma omp parallel for
-  for (int q = 0; q < Q_; q ++) q_group_[q] = connect_(disconnected[q]);
+  for (int q = 0; q < Q_; q ++) q_groups_[q] = connect_(disconnected[q]);
 }
 void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector<vector<int>>& cngs, vector<int>& pqg_idxs, vector<vector<int>>& pngs)
 {
@@ -160,28 +168,28 @@ void Map::site_update_(const int& x, const int& prop, const int& cqg_idx, vector
   q_pop_[prop] += ED_pop_[x];
 
   // remove current connected subset
-  q_group_[curr][cqg_idx] = q_group_[curr].back();
-  q_group_[curr].pop_back();
+  q_groups_[curr][cqg_idx] = q_groups_[curr].back();
+  q_groups_[curr].pop_back();
   // insert new connected subsets (resulting from removing x from curr)
-  q_group_[curr].insert(q_group_[curr].end(), make_move_iterator(cngs.begin()), make_move_iterator(cngs.end()));
+  q_groups_[curr].insert(q_groups_[curr].end(), make_move_iterator(cngs.begin()), make_move_iterator(cngs.end()));
   // remove connected subsets of neighbours in proposed constituency
   std::sort(pqg_idxs.begin(), pqg_idxs.end());
   vector<int> pxg = { x };
   for (int g = pqg_idxs.size()-1; g >= 0; g --)
   {
-    q_group_[prop][pqg_idxs[g]] = q_group_[prop].back();
-    q_group_[prop].pop_back();
+    q_groups_[prop][pqg_idxs[g]] = q_groups_[prop].back();
+    q_groups_[prop].pop_back();
     pxg.insert(pxg.end(), make_move_iterator(pngs[g].begin()), make_move_iterator(pngs[g].end()));
   }
   // add them back in but as one connected subset
-  q_group_[prop].push_back(pxg);
+  q_groups_[prop].push_back(pxg);
 
   // update constituency county tallies
   q_cou_[curr][ED_cou_[x]] --;
   q_cou_[prop][ED_cou_[x]] ++;
 }
 
-Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(populations.size()), total_pop_(std::reduce(ED_pop_.begin(), ED_pop_.end())), EDs_(populations.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats.size()), total_seats_(std::reduce(seats_.begin(), seats_.end())), av_pop_(double(total_pop_) / total_seats_), int_dist_(0, Q_-1), q_pop_(Q_), q_group_(Q_)
+Map::Map(const vector<int>& seats, const vector<int>& populations, const vector<vector<int>>& neighbours, const vector<int>& counties) : seats_(seats), ED_pop_(populations), ED_nei_(neighbours), ED_cou_(counties), ED_q_(ED_pop_.size()), total_pop_(std::reduce(ED_pop_.begin(), ED_pop_.end())), EDs_(ED_pop_.size()), borders_(0), counties_(*std::max_element(ED_cou_.begin(), ED_cou_.end())+1), Q_(seats_.size()), total_seats_(std::reduce(seats_.begin(), seats_.end())), av_pop_(double(total_pop_) / total_seats_), int_dist_(0, Q_-1), q_pop_(Q_), q_groups_(Q_), q_cou_(Q_), unassigned__(EDs_, 0)
 {
   // seats: number of seats per constituency
   // populations/neighbours/counties: list of ED populations/neighbours/counties
@@ -214,7 +222,7 @@ valarray<double> Map::H() const
   for (int q = 0; q < Q_; q ++)
   {
     HP += abs(q_pop_[q]) / (seats_[q] * av_pop_);
-    HC += abs(int(q_group_[q].size()) - 1);
+    HC += abs(int(q_groups_[q].size()) - 1);
     int tally = 0;
     // EDs in each constituency's primary county don't contribute to breaches
     HB -= *std::max_element(q_cou_[q].begin(), q_cou_[q].end());
