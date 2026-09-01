@@ -2,6 +2,7 @@
 using std::valarray;
 #include <math.h>
 #include <algorithm>
+#include <numeric>
 #include <random>
 #include <omp.h>
 #include "Map.h"

@@ -1,0 +1,84 @@
+Bootstrap: docker
+From: registry.suse.com/bci/bci-base:15.7
+
+# ---------------------------------------------------------------------------
+# Singularity / Apptainer recipe for the cothrom Python environment.
+#
+# Targets LUMI (SUSE-based), so we start from openSUSE Leap 15.7 and pull the
+# geospatial system libraries (GDAL / GEOS / PROJ) with zypper, then install
+# the Python packages on top. This container REPLACES the old .venv workflow.
+#
+# Build unprivileged with the proot backend (no --fakeroot, no root required):
+#   # run from inside the cothrom/ directory so %files can find requirements.txt
+#   singularity build cothrom.sif cothrom.def
+#
+# Use it (bind the repo so scripts can read/write ./data):
+#   singularity exec --bind $PWD cothrom.sif python code/combine_data.py
+#   singularity run  --bind $PWD cothrom.sif code/txt_for_MCMC.py County ... "..."
+# ---------------------------------------------------------------------------
+
+%files
+    requirements.txt /opt/cothrom/requirements.txt
+
+%post
+    set -eu
+
+    # -- system packages ----------------------------------------------------
+    # --no-recommends keeps the image lean; names target Leap 15.7.
+    zypper --non-interactive --gpg-auto-import-keys refresh
+    zypper --non-interactive install -y --no-recommends \
+        python311 python311-pip python311-devel
+    zypper clean --all
+
+    # -- make python3.11 the default python/python3/pip ---------------------
+    ln -sf /usr/bin/python3.11 /usr/local/bin/python3
+    ln -sf /usr/bin/python3.11 /usr/local/bin/python
+    ln -sf /usr/bin/pip3.11    /usr/local/bin/pip3   2>/dev/null || true
+    ln -sf /usr/bin/pip3.11    /usr/local/bin/pip    2>/dev/null || true
+
+    # -- Python environment (replaces the venv) -----------------------------
+    # Wheels for shapely / pyproj / pyogrio / fiona bundle their own copies of
+    # GEOS / PROJ / GDAL; the zypper libs above cover any source builds and the
+    # GDAL runtime that libpysal / geopandas expect on LUMI.
+    python3.11 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+    python3.11 -m pip install --no-cache-dir -r /opt/cothrom/requirements.txt
+
+%environment
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+    # GDAL data paths for geopandas / libpysal at runtime.
+    export GDAL_DATA=$(gdal-config --datadir 2>/dev/null || echo /usr/share/gdal)
+    export PROJ_LIB=/usr/share/proj
+
+%runscript
+    # `singularity run cothrom.sif <script.py> [args...]` runs it with the
+    # container's python. With no arguments it drops into a Python shell.
+    if [ "$#" -eq 0 ]; then
+        exec python3.11
+    else
+        exec python3.11 "$@"
+    fi
+
+%test
+    set -e
+    python3.11 --version
+    python3.11 -c "import numpy, pandas, matplotlib, requests; print('core OK')"
+    python3.11 -c "import geopandas; from libpysal.weights.contiguity import Queen; print('geo stack OK')"
+
+%labels
+    Application cothrom
+    Description Electoral redistricting Python environment (openSUSE Leap 15.7)
+
+%help
+    Containerised Python environment for the cothrom project, replacing the
+    old python3-venv workflow. Built on openSUSE Leap 15.7 to match LUMI.
+
+    Bind the repository into the container so the scripts can read and write
+    the data/ directory, e.g.:
+
+        singularity exec --bind $PWD cothrom.sif python code/combine_data.py
+        singularity exec --bind $PWD cothrom.sif \
+            python code/plot_stats.py "Midland counties" 3133663620
+
+    The C++ side (MCMC_SA, actual_H) is built separately with CMake; see the
+    README.

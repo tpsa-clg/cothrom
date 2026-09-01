@@ -13,6 +13,8 @@
 MCMC_SA
 actual_H
 *.o
+build/
+*sif
 
 # virtual environment
 .venv/
