@@ -8,6 +8,8 @@ from glob import glob
 
 
 # Area name, configuration ID
+if len(sys.argv) != 3:
+    sys.exit(f"Error: {len(sys.argv)-1} arguments provided, 2 arguments required.")
 area_name = sys.argv[1]
 config_id = sys.argv[2]
 

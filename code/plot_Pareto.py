@@ -7,6 +7,8 @@ import itertools as it
 
 
 # Area name, number of seats, number of constituencies
+if len(sys.argv) != 4:
+    sys.exit(f"Error: {len(sys.argv)-1} arguments provided, 3 arguments required.")
 area_name = sys.argv[1]
 seats = int(sys.argv[2])
 constituencies = int(sys.argv[3])

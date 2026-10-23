@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 
 
 # Area from command line
+if len(sys.argv) != 4:
+    sys.exit(f"Error: {len(sys.argv)-1} arguments provided, 3 arguments required.")
 area_type = sys.argv[1]
 area_list = sys.argv[2].split(",")
 area_name = sys.argv[3]

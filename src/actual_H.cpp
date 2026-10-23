@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -8,6 +9,12 @@ using std::valarray;
 
 int main(int argc, char *argv[])
 {
+  if (argc != 2)
+  {
+    std::cout << "Error: " << (argc-1) << " arguments provided, 1 argument required.\n";
+    return 1;
+  }
+
   // custom name for area of consideration - command line argument
   std::string map_name = argv[1];
   // directory for reading populations, neighbours, configuration

@@ -14,6 +14,12 @@ using std::valarray;
 
 int main(int argc, char *argv[])
 {
+  if (argc != 5)
+  {
+    std::cout << "Error: " << (argc-1) << " arguments provided, 4 arguments required.\n";
+    return 1;
+  }
+
   // custom name for area of consideration - first command line argument
   std::string map_name = argv[1];
   // directory for reading population & neighbour data and saving configs
