@@ -72,7 +72,8 @@ int main(int argc, char *argv[])
     std::cerr << "Error: No seats provided via command line.\n";
     return 1;
   }
-  std::sort(seats.begin(), seats.end());
+  vector<int> sorted_seats(seats);
+  std::sort(sorted_seats.begin(), sorted_seats.end());
   // initialising map
   Map map(seats, populations, neighbours, counties);
   // storing the initial map configuration
@@ -95,7 +96,7 @@ int main(int argc, char *argv[])
     // i.e population variance of smallest constituency = abs(total seats - constituency seats) / (constituency seats) = (total seats) / (constituency seats) - 1
     // and population variance of each other constituency = abs(-constituency seats) / (constituency seats) = 1
     // so max(H_P) = total/smallest - 1 + (Q - 1) = total/smallest + Q - 2
-    double(map.total_seats()) / map.seat(0) + map.Q() - 2.,
+    double(map.total_seats()) / sorted_seats.front() + map.Q() - 2.,
     // max(H_C): no ED is connected to another ED in the same constituency, i.e. number of disconnected parts = number of EDs
     double(map.EDs()),
     // max(H_D): same case as max(H_C), i.e. all neighbours of each ED are in a different constituency
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
   valarray<double> max_deltaH = {
     // max(deltaH_P): smallest-seat constituency is already under-represented and loses the map's most populated ED to the next smallest constituency which was already over-represented
     // i.e. abs(-max_pop/(smallest desired seats)) + abs(max_pop/(next smallest desired seats)) = max_pop/(av_pop*seats[0]) + max_pop/(av_pop*seats[1])
-    (max_pop / map.av_pop()) * (1./map.seat(0) + 1./map.seat(1)),
+    (max_pop / map.av_pop()) * (1./sorted_seats[0] + 1./sorted_seats[1]),
     // max(deltaH_C): removing from current constituency splits all neighbours into disconnected regions, adding to new constituency creates a new disconnected region
     // note: in most cases only floor(neighbours/2) can be made disconnected but there are some edge cases with neighbours with only one neighbour (e.g. islands) so this is an upper bound
     max_nei + 1.,
