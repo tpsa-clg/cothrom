@@ -35,7 +35,7 @@ do
     for JB in ${JBs[@]}
     do
       JC=$(bc <<< "scale=3; (${JD}+${JB}+1)*${JC_proportion}/(1-${JC_proportion})")
-      sbatch -N 1 -t 4-00:00:00 -p compute -J Pareto --wrap="OMP_SET_NUM_THREADS=16; ./build/MCMC_SA $area_name $seat_config ${JC},${JD},${JB} ${N_meas},${N_disc}"
+      sbatch -N 1 -t 4-00:00:00 -p compute -J Pareto --wrap="OMP_NUM_THREADS=16; ./build/MCMC_SA $area_name $seat_config ${JC},${JD},${JB} ${N_meas},${N_disc}"
     done
   done
 done
