@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 {
   if (argc != 2)
   {
-    std::cout << "Error: " << (argc-1) << " arguments provided, 1 argument required.\n";
+    std::cerr << "Error: " << (argc-1) << " arguments provided, 1 argument required.\n";
     return 1;
   }
 
@@ -27,6 +27,10 @@ int main(int argc, char *argv[])
   std::string seat;
   vector<int> seats(0);
   while (getline(ss, seat, ',')) if (seat != "Q") seats.push_back(stoi(seat));
+  if (seats.empty()) {
+    std::cerr << "Error: No seats read from file.\n";
+    return 1;
+  }
   // exit if Hamiltonians already added to csv
   getline(actual_in, line);
   actual_in.close();
@@ -44,6 +48,11 @@ int main(int argc, char *argv[])
   std::ifstream pop_file(data_dir + "Population.txt");
   while (getline(pop_file, line)) populations.push_back(stoi(line));
   pop_file.close();
+  if (populations.empty())
+  {
+    std::cerr << "Error: Population file is empty or missing.\n";
+    return 1;
+  }
   // read neighbours - multiple integers (neighbours) separated by spaces per line (ED)
   vector<vector<int>> neighbours(0);
   std::ifstream nei_file(data_dir + "Neighbours.txt");
@@ -56,11 +65,21 @@ int main(int argc, char *argv[])
     neighbours.push_back(nei);
   }
   nei_file.close();
+  if (neighbours.empty())
+  {
+    std::cerr << "Error: Neighbours file is empty or missing.\n";
+    return 1;
+  }
   // read counties - one integer (county) per line (ED)
   vector<int> counties(0);
   std::ifstream cou_file(data_dir + "County.txt");
   while (getline(cou_file, line)) counties.push_back(stoi(line));
   cou_file.close();
+  if (counties.empty())
+  {
+    std::cerr << "Error: Counties file is empty or missing.\n";
+    return 1;
+  }
 
   // initialising map
   Map map(seats, populations, neighbours, counties);
