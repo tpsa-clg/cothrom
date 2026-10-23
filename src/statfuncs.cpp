@@ -1,5 +1,6 @@
 #include <math.h>
 #include <numeric>
+#include <stdexcept>
 #include "statfuncs.h"
 
 void autocorr(const vector<double>& chain, double& tau_hat, double& tau_hat_err, const double& mean, const double& quadratic_sum)
@@ -9,7 +10,11 @@ void autocorr(const vector<double>& chain, double& tau_hat, double& tau_hat_err,
   // mean, quadratic_sum: mean and sum of squared differences from mean
   // estimator according to https://doi.org/10.1007/978-1-4899-0319-8_6 chap. 3
 
-  int N = chain.size(), M = 0;
+  int N = chain.size();
+  if (N < 2) throw std::invalid_argument("chain must have multiple entries");
+  if (quadratic_sum <= 0.) throw std::invalid_argument("quadratic_sum must be positive");
+
+  int M = 0;
   double fac = 2.*N/quadratic_sum;
   tau_hat = 1.;
   do
@@ -19,8 +24,13 @@ void autocorr(const vector<double>& chain, double& tau_hat, double& tau_hat_err,
     #pragma omp parallel for reduction(+:sum)
     for (int n = 0; n < N-M; n ++) sum += (chain[n]-mean)*(chain[n+M]-mean);
     tau_hat += sum/(N-M)*fac;
-  } while (M < 5.*tau_hat || tau_hat <= 0.);
-  tau_hat_err = tau_hat*sqrt((4.*M+2.)/N);
+  } while ((M < N-1) && (M < 5.*tau_hat || tau_hat <= 0.));
+  if (M < N-1) tau_hat_err = tau_hat*sqrt((4.*M+2.)/N);
+  else
+  {
+    tau_hat = nan("");
+    tau_hat_err = nan("");
+  }
 }
 vector<double> thin(const vector<double>& chain, const int& tau)
 {
@@ -39,6 +49,7 @@ void Markov_chain_calculations(const vector<double>& chain, vector<double>& mean
   // variance of sample variance according to https://stats.stackexchange.com/questions/156518/what-is-the-standard-error-of-the-sample-standard-deviation
 
   int N = chain.size();
+  if (N == 0) throw std::invalid_argument("chain must not be empty");
 
   double sample_mean = std::accumulate(chain.begin(), chain.end(), 0.) / N;
 
@@ -53,13 +64,17 @@ void Markov_chain_calculations(const vector<double>& chain, vector<double>& mean
   double sample_mean_var = quadratic_sum / (N * (N_eff - 1.));
   double sample_var = N_eff * sample_mean_var;
 
-  // TODO make exception for non-positive tau
-  vector<double> thinned = thin(chain, ceil(tau_hat));
-  int N_thin = thinned.size();
-  double thinned_quartic_sum = 0.;
-  #pragma omp parallel for reduction(+:thinned_quartic_sum)
-  for (int n = 0; n < N_thin; n ++) thinned_quartic_sum += pow(thinned[n] - sample_mean, 4);
-  double sample_var_var = (thinned_quartic_sum/N_thin - (N_thin-3.)/(N_thin-1.)*sample_var*sample_var) / N_thin;
+  double sample_var_var;
+  if (isnan(tau_hat)) sample_var_var = nan("");
+  else
+  {
+    vector<double> thinned = thin(chain, ceil(tau_hat));
+    int N_thin = thinned.size();
+    double thinned_quartic_sum = 0.;
+    #pragma omp parallel for reduction(+:thinned_quartic_sum)
+    for (int n = 0; n < N_thin; n ++) thinned_quartic_sum += pow(thinned[n] - sample_mean, 4);
+    sample_var_var = (thinned_quartic_sum/N_thin - (N_thin-3.)/(N_thin-1.)*sample_var*sample_var) / N_thin;
+  }
 
   means.push_back(sample_mean);
   mean_errs.push_back(sqrt(sample_mean_var));
