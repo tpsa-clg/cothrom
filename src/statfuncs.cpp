@@ -58,7 +58,7 @@ void Markov_chain_calculations(const vector<double>& chain, vector<double>& mean
   int N_thin = thinned.size();
   double thinned_quartic_sum = 0.;
   #pragma omp parallel for reduction(+:thinned_quartic_sum)
-  for (int n = 0; n < N_thin; n ++) thinned_quartic_sum += pow(chain[n] - sample_mean, 4);
+  for (int n = 0; n < N_thin; n ++) thinned_quartic_sum += pow(thinned[n] - sample_mean, 4);
   double sample_var_var = (thinned_quartic_sum/N_thin - (N_thin-3.)/(N_thin-1.)*sample_var*sample_var) / N_thin;
 
   means.push_back(sample_mean);
