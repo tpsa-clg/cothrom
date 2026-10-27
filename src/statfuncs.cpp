@@ -12,7 +12,13 @@ void autocorr(const vector<double>& chain, double& tau_hat, double& tau_hat_err,
 
   int N = chain.size();
   if (N < 2) throw std::invalid_argument("chain must have multiple entries");
-  if (quadratic_sum <= 0.) throw std::invalid_argument("quadratic_sum must be positive");
+  if (quadratic_sum < 0.) throw std::invalid_argument("quadratic_sum must be positive");
+  if (quadratic_sum == 0.)
+  {
+    tau_hat = 1.;
+    tau_hat_err = 0.;
+    return;
+  }
 
   int M = 0;
   double fac = 2.*N/quadratic_sum;
