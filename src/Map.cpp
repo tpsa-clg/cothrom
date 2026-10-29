@@ -1,6 +1,5 @@
-#include <valarray>
-using std::valarray;
-#include <math.h>
+#include <cmath>
+#include <cstdlib>
 #include <algorithm>
 #include <numeric>
 #include <random>
@@ -11,48 +10,63 @@ using std::valarray;
 std::mt19937 r(1234);
 std::uniform_real_distribution<double> standard_uniform(0., 1.);
 
-vector<vector<int>> Map::connect_(vector<int>& disconnected) const
+// Minimum number of constituencies (Q_) at which parallelising the per-site
+// Gibbs loop over constituencies is worth its OpenMP fork/join cost. Below this
+// the loop runs serially: Q_ is small for area-scale runs and the loop executes
+// once per ED per sweep, so at small Q_ the fork/join overhead dominates the
+// tiny per-constituency work. Conservative default - tune per target/benchmark.
+static constexpr int GS_PARALLEL_MIN_Q = 32;
+
+vector<vector<int>> Map::connect_(const vector<int>& disconnected) const
 {
   // disconnected: a list of EDs that we want to split into connected subsets, i.e. the contiguous parts
 
+  // Membership bitmap over ED indices (dense in [0, EDs_)): present[x] == 1 iff x
+  // is still an unassigned member of the input set. This replaces the old linear
+  // std::find / erase over `disconnected` (which made the whole routine O(k^2))
+  // with O(1) membership tests, giving overall O(k + edges).
+  //
+  // It is thread_local because connect_() is called concurrently from the
+  // parallel loop in config_update_(). The bitmap is kept all-zero between calls
+  // (every ED we mark below is unmarked again as it is absorbed into a subset),
+  // so it can be reused across calls without re-allocating or re-clearing.
+  static thread_local vector<char> present;
+  if (int(present.size()) < EDs_) present.assign(EDs_, 0);
+
+  // mark every ED currently in the set as present
+  for (int x : disconnected) present[x] = 1;
+
   // create an empty list of lists, where connected[i] will give the i-th connected subset of the input ED list
   vector<vector<int>> connected(0);
-  // iterate until our list of EDs is empty, i.e. until we have assigned each ED to a connected subset
-  while (not disconnected.empty())
+  // use the original list as the source of (arbitrary) seeds; any ED not yet
+  // absorbed into an earlier subset starts a new one
+  for (int seed : disconnected)
   {
-    // pick an arbitrary element of the remaining list of EDs - here we choose the last element of the list
-    // we will then create the connected subset to which this ED belongs
-    vector<int> group = { disconnected.back() };
-    disconnected.pop_back();
+    if (not present[seed]) continue;
+    // create the connected subset to which this seed belongs
+    vector<int> group = { seed };
+    present[seed] = 0;
     // iterate over EDs in connected subset (breadth-first) until no more neighbours can be added
-    int i = 0;
-    while (i < group.size())
+    for (size_t i = 0; i < group.size(); i ++)
     {
       int x = group[i];
-      // iterate over ED's neighbours
-      for (int j = 0; j < ED_nei_[x].size(); j ++)
+      // iterate over ED's neighbours; move any still-present neighbour into this subset
+      for (int y : ED_nei_[x])
       {
-        int y = ED_nei_[x][j];
-        // find location of neighbour in list of remaining EDs
-        // if it == disconnected.end() then the neighbour is not in list (and thus is already in our connected subset list or was never in the original list of EDs)
-        // otherwise we move it into our connected subset of EDs
-        vector<int>::iterator it = std::find(disconnected.begin(), disconnected.end(), y);
-        if (it != disconnected.end())
+        if (present[y])
         {
+          present[y] = 0;
           group.push_back(y);
-          disconnected.erase(it);
         }
       }
-      // move onto next ED in connected subset
-      i ++;
     }
     // append this connected subset into our list of connected subsets
-    connected.push_back(group);
+    connected.push_back(std::move(group));
   }
   return connected;
 }
 
-valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const
+Ham Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const
 {
   // x: ED index
   // cqg_idx: index of x's connected subset in q_group_[curr]
@@ -83,16 +97,21 @@ valarray<double> Map::deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int
   int deltaHD_curr = 0;
   for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[ED_nei_[x][i]] == curr) deltaHD_curr ++;
 
-  // calculate the decrease in the county boundary Hamiltonian, i.e. only if removing x from its constituency lessens a breach
+  // calculate the decrease in the county boundary Hamiltonian, i.e. only if removing x from its constituency lessens a breach.
+  // Removing x lowers county cx's tally by one; the breach count is (EDs in constituency) - (largest county group),
+  // so removing x lessens a breach iff cx is not the sole-largest group, i.e. iff some OTHER county holds at least
+  // as many EDs: max_{c != cx} q_cou_[curr][c] >= q_cou_[curr][cx]. Computed in one pass, avoiding the old per-site
+  // heap copy of the whole tally vector.
   int deltaHB_curr = 0;
-  vector<int> tmp_county_tally = q_cou_[curr];
-  tmp_county_tally[ED_cou_[x]] --;
-  if (tmp_county_tally[ED_cou_[x]] < *std::max_element(tmp_county_tally.begin(), tmp_county_tally.end())) deltaHB_curr --;
+  int cx = ED_cou_[x];
+  int max_other = 0;
+  for (int c = 0; c < counties_; c ++) if (c != cx && q_cou_[curr][c] > max_other) max_other = q_cou_[curr][c];
+  if (max_other >= q_cou_[curr][cx]) deltaHB_curr --;
 
   // return the changes to the population, contiguity, and compactness Hamiltonians
-  return valarray<double>{ (abs(q_pop_[curr] - ED_pop_[x]) - abs(q_pop_[curr]))/(seats_[curr] * av_pop_), fabs(q_group_[curr].size() + cngs.size() - 2.) - q_group_[curr].size() + 1, double(deltaHD_curr), double(deltaHB_curr) };
+  return Ham{ (std::fabs(q_pop_[curr] - ED_pop_[x]) - std::fabs(q_pop_[curr]))/(seats_[curr] * av_pop_), std::fabs(q_group_[curr].size() + cngs.size() - 2.) - q_group_[curr].size() + 1, double(deltaHD_curr), double(deltaHB_curr) };
 }
-valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const
+Ham Map::deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const
 {
   // pqg_idxs: indexes of x's neighbours' connected subsets in q_group_[prop]
   // pngs: connected subsets to which x's neighbours in the proposed constituency belong
@@ -127,7 +146,7 @@ valarray<double> Map::deltaH_prop_(const int& x, const int& prop, vector<int>& p
   if (q_cou_[prop][ED_cou_[x]] != *std::max_element(q_cou_[prop].begin(), q_cou_[prop].end())) deltaHB_prop ++;
 
   // return the changes to the population, contiguity, and compactness Hamiltonians
-  return valarray<double>{ (abs(q_pop_[prop] + ED_pop_[x]) - abs(q_pop_[prop]))/(seats_[prop] * av_pop_), q_group_[prop].size() - pngs.size() - fabs(q_group_[prop].size() - 1.), double(deltaHD_prop), double(deltaHB_prop) };
+  return Ham{ (std::fabs(q_pop_[prop] + ED_pop_[x]) - std::fabs(q_pop_[prop]))/(seats_[prop] * av_pop_), q_group_[prop].size() - pngs.size() - std::fabs(q_group_[prop].size() - 1.), double(deltaHD_prop), double(deltaHB_prop) };
 }
 
 void Map::config_update_()
@@ -206,7 +225,7 @@ void Map::change_config(const vector<int>& config)
   config_update_();
 }
 
-valarray<double> Map::H() const
+Ham Map::H() const
 {
   // tally each constituency's contribution to population, contiguity, and county boundary Hamiltonians
   double HP = 0.;
@@ -214,8 +233,8 @@ valarray<double> Map::H() const
   #pragma omp parallel for reduction(+:HP,HC,HB)
   for (int q = 0; q < Q_; q ++)
   {
-    HP += abs(q_pop_[q]) / (seats_[q] * av_pop_);
-    HC += abs(int(q_group_[q].size()) - 1);
+    HP += std::fabs(q_pop_[q]) / (seats_[q] * av_pop_);
+    HC += std::abs(int(q_group_[q].size()) - 1);
     int tally = 0;
     // EDs in each constituency's primary county don't contribute to breaches
     HB -= *std::max_element(q_cou_[q].begin(), q_cou_[q].end());
@@ -225,10 +244,10 @@ valarray<double> Map::H() const
   #pragma omp parallel for reduction(+:HD)
   for (int x = 0; x < EDs_; x ++) for (int i = 0; i < ED_nei_[x].size(); i ++) if (ED_q_[x] != ED_q_[ED_nei_[x][i]]) HD ++;
   // return population, contiguity, and compactness Hamiltonians
-  return valarray<double>{ HP, double(HC), HD/2., double(HB) };
+  return Ham{ HP, double(HC), HD/2., double(HB) };
 }
 
-int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
+int Map::MA_Sweep(Ham& H, const Ham& J_ZT)
 {
   // J_ZT: combination of coefficients for each Hamiltonian, i.e. (coupling constant) / (normalising factor * temperature)
 
@@ -245,11 +264,11 @@ int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
     int cqg_idx;
     vector<vector<int>> cngs, pngs(0);
     vector<int> pqg_idxs(0);
-    valarray<double> deltaH = deltaH_curr_(x, cqg_idx, cngs) + deltaH_prop_(x, prop, pqg_idxs, pngs);
+    Ham deltaH = deltaH_curr_(x, cqg_idx, cngs) + deltaH_prop_(x, prop, pqg_idxs, pngs);
 
     // accepting/rejecting proposal
-    double deltaH_sum = (J_ZT*deltaH).sum();
-    if (deltaH_sum <= 0 || standard_uniform(r) < exp(-deltaH_sum))
+    double deltaH_sum = sum(J_ZT*deltaH);
+    if (deltaH_sum <= 0 || standard_uniform(r) < std::exp(-deltaH_sum))
     {
       site_update_(x, prop, cqg_idx, cngs, pqg_idxs, pngs);
       H += deltaH;
@@ -259,7 +278,7 @@ int Map::MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
   return alpha;
 }
 
-int Map::GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
+int Map::GS_Sweep(Ham& H, const Ham& J_ZT)
 {
   // parameters as defined in MA_Sweep()
 
@@ -273,22 +292,25 @@ int Map::GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT)
     int cqg_idx;
     vector<vector<int>> cngs, pqg_idxs(Q_, vector<int>(0));
     vector<vector<vector<int>>> pngs(Q_, vector<vector<int>>(0));
-    vector<valarray<double>> deltaH(Q_, deltaH_curr_(x, cqg_idx, cngs));
+    vector<Ham> deltaH(Q_, deltaH_curr_(x, cqg_idx, cngs));
     vector<double> prop_dist(Q_);
     // iterating over all constituencies
-    #pragma omp parallel for
+    // Parallelise only when Q_ is large enough to amortise fork/join (see
+    // GS_PARALLEL_MIN_Q); serial otherwise. Each iteration writes only its own
+    // q-indexed slots and deltaH_prop_ is const, so the loop is data-race free.
+    #pragma omp parallel for if(Q_ >= GS_PARALLEL_MIN_Q)
     for (int q = 0; q < Q_; q ++)
     {
       // calculate change in Hamiltonians & corresponding distribution weight for each possible change
       if (q != curr)
       {
         deltaH[q] += deltaH_prop_(x, q, pqg_idxs[q], pngs[q]);
-        prop_dist[q] = exp(-(J_ZT*deltaH[q]).sum());
+        prop_dist[q] = std::exp(-sum(J_ZT*deltaH[q]));
       }
       // no need to calculate "change" to current constituency
       else
       {
-        deltaH[q] = valarray<double>{ 0., 0., 0. };
+        deltaH[q] = Ham{ 0., 0., 0., 0. };
         prop_dist[q] = 1.;
       }
     }

@@ -85,21 +85,21 @@ if not counties_file:
 
 # Reading population data
 pop_df = pd.read_csv(pop_file, usecols=["C04167V04938", "VALUE"])
-pop_df.rename(columns={"C04167V04938": "GUID", "VALUE": "Population"}, inplace=True)
+pop_df = pop_df.rename(columns={"C04167V04938": "GUID", "VALUE": "Population"})
 
 # Reading geographical data (name, county, LEA, geometry)
 geo_df = gpd.read_file(geo_file)
 geo_df = geo_df[["ED_GUID", "ED_ENGLISH", "COUNTY_ENGLISH", "CSO_LEA", "geometry"]]
-geo_df.rename(columns={"ED_GUID": "GUID",
-                       "ED_ENGLISH": "Name",
-                       "COUNTY_ENGLISH": "Administrative Region",
-                       "CSO_LEA": "LEA"}, inplace=True)
+geo_df = geo_df.rename(columns={"ED_GUID": "GUID",
+                                "ED_ENGLISH": "Name",
+                                "COUNTY_ENGLISH": "Administrative Region",
+                                "CSO_LEA": "LEA"})
 
 # Merging datasets
 important_data = geo_df.merge(pop_df, how="left", on="GUID")
 del geo_df, pop_df
-important_data.sort_values("GUID", inplace=True)
-important_data.reset_index(drop=True, inplace=True)
+important_data = important_data.sort_values("GUID")
+important_data = important_data.reset_index(drop=True)
 print("CSO & Tailte Éireann data merged.")
 
 

@@ -2,7 +2,23 @@
 #define MAP_H
 
 #include <vector>
+#include <array>
+#include <random>
 using std::vector;
+
+// 4-component Hamiltonian vector: (population, contiguity, compactness, county).
+// A fixed-size std::array lives on the stack, avoiding the per-call heap
+// allocation that valarray<double> incurred on every deltaH_*/H() evaluation
+// (millions per run - see bench/bench_ham.cpp, ~7-15x on the isolated arithmetic).
+// These free operators supply the elementwise algebra and reduction the code
+// relies on; they are `inline` so the header is ODR-safe across translation units.
+using Ham = std::array<double, 4>;
+inline Ham  operator+ (const Ham& a, const Ham& b) { return { a[0]+b[0], a[1]+b[1], a[2]+b[2], a[3]+b[3] }; }
+inline Ham& operator+=(      Ham& a, const Ham& b) { a[0]+=b[0]; a[1]+=b[1]; a[2]+=b[2]; a[3]+=b[3]; return a; }
+inline Ham  operator* (const Ham& a, const Ham& b) { return { a[0]*b[0], a[1]*b[1], a[2]*b[2], a[3]*b[3] }; }
+inline Ham  operator/ (const Ham& a, const Ham& b) { return { a[0]/b[0], a[1]/b[1], a[2]/b[2], a[3]/b[3] }; }
+inline Ham  operator/ (const Ham& a, double s)     { return { a[0]/s,    a[1]/s,    a[2]/s,    a[3]/s    }; }
+inline double sum(const Ham& a) { return a[0] + a[1] + a[2] + a[3]; }
 
 // Custom class for electoral maps.
 class Map
@@ -45,14 +61,13 @@ class Map
     vector<vector<int>> q_cou_;
 
     // Return a vector of (geographically) connected subsets from a vector of EDs.
-    // Note: input vector will be empty at return.
-    // Also note: the ordering of subsets, and within each subset, is arbitrary.
-    vector<vector<int>> connect_(vector<int>& disconnected) const;
+    // Note: the ordering of subsets, and within each subset, is arbitrary.
+    vector<vector<int>> connect_(const vector<int>& disconnected) const;
 
     // Return the change to each Hamiltonian by changing an ED's constituency (from the current constituency/to a proposed constituency).
     // Also returns (by reference) some relevant quantities for site_update_().
-    valarray<double> deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const;
-    valarray<double> deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const;
+    Ham deltaH_curr_(const int& x, int& cqg_idx, vector<vector<int>>& cngs) const;
+    Ham deltaH_prop_(const int& x, const int& prop, vector<int>& pqg_idxs, vector<vector<int>>& pngs) const;
 
     // Update constituency populations, connected subsets, and county tallies.
     // Only used at construction and manual configuration changes.
@@ -82,13 +97,13 @@ class Map
     void change_config(const vector<int>& config);
 
     // Return each (unnormalised) Hamiltonian term of the current configuration.
-    valarray<double> H() const;
+    Ham H() const;
 
     // Perform a single Metropolis algorithm sweep and return the acceptance rate.
-    int MA_Sweep(valarray<double>& H, const valarray<double>& J_ZT);
+    int MA_Sweep(Ham& H, const Ham& J_ZT);
 
     // Perform a single Gibbs sampler (heat bath) sweep and return the "acceptance" rate (how often an ED is changed).
-    int GS_Sweep(valarray<double>& H, const valarray<double>& J_ZT);
+    int GS_Sweep(Ham& H, const Ham& J_ZT);
 };
 
 #endif

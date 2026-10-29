@@ -3,10 +3,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <valarray>
-using std::valarray;
+#include <cmath>
 #include <chrono>
 #include <set>
+#include <algorithm>
 #include <filesystem>
 #include "Map.h"
 #include "statfuncs.h"
@@ -89,9 +89,12 @@ int main(int argc, char *argv[])
     J_str.push_back(line);
     J_vec.push_back(stod(line));
   }
-  valarray<double> J(J_vec.data(), J_vec.size());
+  // 4-component coupling vector (population coupling fixed at 1, plus the three
+  // supplied constants); the model is fixed at 4 Hamiltonians (see Ham in Map.h)
+  Ham J{};
+  for (size_t i = 0; i < J.size() && i < J_vec.size(); i ++) J[i] = J_vec[i];
   // getting Hamiltonian normalisations (such that 0 <= H_P, H_C, H_D, H_B <= 1 and 0 <= H <= sum(Js) to make coupling tuning easier)
-  valarray<double> Z = {
+  Ham Z = {
     // max(H_P): all EDs assigned to smallest-seat constituency
     // i.e population variance of smallest constituency = abs(total seats - constituency seats) / (constituency seats) = (total seats) / (constituency seats) - 1
     // and population variance of each other constituency = abs(-constituency seats) / (constituency seats) = 1
@@ -107,7 +110,7 @@ int main(int argc, char *argv[])
     map.EDs() * (map.counties() - 1.) / map.counties()
   };
   // incorporating Hamiltonian normalisations into coupling constants
-  valarray<double> J_Z = J/Z;
+  Ham J_Z = J/Z;
   // fixing county boundary coupling to 0 if map is wholly within a county
   if (map.counties() == 1)
   {
@@ -121,7 +124,7 @@ int main(int argc, char *argv[])
   for (int x = 0; x < map.EDs(); x ++) if (map.nei(x).size() > max_nei) max_nei = map.nei(x).size();
   // choosing the starting temperature - defined as temperature at which the highest energy increase is accepted with at least 99% probability
   // i.e. alpha = exp(-sum(J_i * H_i / Z_i) / T), rearrange for T and set H_i = max(H_i), alpha = 0.99
-  valarray<double> max_deltaH = {
+  Ham max_deltaH = {
     // max(deltaH_P): smallest-seat constituency is already under-represented and loses the map's most populated ED to the next smallest constituency which was already over-represented
     // i.e. abs(-max_pop/(smallest desired seats)) + abs(max_pop/(next smallest desired seats)) = max_pop/(av_pop*seats[0]) + max_pop/(av_pop*seats[1])
     (max_pop / map.av_pop()) * (1./sorted_seats[0] + 1./sorted_seats[1]),
@@ -134,7 +137,7 @@ int main(int argc, char *argv[])
     std::min(map.counties() - 1., 1.)
   };
   double alpha = .99;
-  double T = -(J_Z * max_deltaH).sum() / log(alpha);
+  double T = -sum(J_Z * max_deltaH) / std::log(alpha);
   vector<double> Ts(0);
   // temperature cooling factor
   double cool = .9;
@@ -157,7 +160,7 @@ int main(int argc, char *argv[])
   vector<double> times(0);
 
   // variables for determining ground state degeneracy (set of optimal configurations)
-  double H_min = J.sum();
+  double H_min = sum(J);
   std::set<vector<int>> optimal_configs;
   int num_optimal_configs;
   bool continue_annealing;
@@ -173,7 +176,7 @@ int main(int argc, char *argv[])
     std::cout << Ts.size() << " " << T << "\n";
 
     // overall Hamiltonian coefficients (coupling + normalisation + temperature) and Hamiltonian tally
-    valarray<double> J_ZT = J_Z / T, H(J.size());
+    Ham J_ZT = J_Z / T, H{};
     // thermalising/equilibrising
     // TODO also check for optimal configs here? would need to keep track of H but skip measurements
     for (int n = 0; n < N_disc; n ++) map.GS_Sweep(H, J_ZT);
@@ -194,7 +197,7 @@ int main(int argc, char *argv[])
       // getting acceptance rates and Hamiltonians for measured iterations
       acc_chain[n] = map.GS_Sweep(H, J_ZT);
       for (int i = 0; i < J.size(); i ++) H_chain[i][n] = H[i];
-      H_sum_chain[n] = (J_Z*H).sum();
+      H_sum_chain[n] = sum(J_Z*H);
 
       // updating set of optimal configurations and ensuring another annealing iteration if new lowest energy found
       if (H_sum_chain[n] < H_min)
@@ -260,7 +263,7 @@ int main(int argc, char *argv[])
   for (vector<int> config : optimal_configs)
   {
     map.change_config(config);
-    valarray<double> H = map.H();
+    Ham H = map.H();
     file << "\nH";
     for (int i = 0; i < J.size(); i ++) file << "," << H[i];
     file << "\n" << config.front();

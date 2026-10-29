@@ -43,12 +43,20 @@ From: registry.suse.com/bci/bci-base:15.7
     python3.11 -m pip install --no-cache-dir --upgrade pip setuptools wheel
     python3.11 -m pip install --no-cache-dir -r /opt/cothrom/requirements.txt
 
+    rm  /usr/lib/python3.11/site-packages/distutils-precedence.pth
+
 %environment
     export LC_ALL=C.UTF-8
     export LANG=C.UTF-8
     # GDAL data paths for geopandas / libpysal at runtime.
     export GDAL_DATA=$(gdal-config --datadir 2>/dev/null || echo /usr/share/gdal)
     export PROJ_LIB=/usr/share/proj
+    # Never pick up packages from the host ~/.local
+    export PYTHONNOUSERSITE=1
+    # Keep caches out of the (possibly mounted) home
+    export MPLCONFIGDIR=/tmp/matplotlib
+    export PYTHONDONTWRITEBYTECODE=1
+
 
 %runscript
     # `singularity run cothrom.sif <script.py> [args...]` runs it with the

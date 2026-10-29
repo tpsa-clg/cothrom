@@ -3,8 +3,6 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <valarray>
-using std::valarray;
 #include "Map.h"
 
 int main(int argc, char *argv[])
@@ -86,7 +84,7 @@ int main(int argc, char *argv[])
   // setting actual configuration
   map.change_config(config);
   // getting Hamiltonians of actual configuration
-  valarray<double> H = map.H();
+  Ham H = map.H();
 
   // overwriting actual csv to match format
   std::ofstream actual_out;

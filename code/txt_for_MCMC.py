@@ -26,7 +26,7 @@ area_df.loc[:, "Neighbours"] = np.array([neighbours & intersect for neighbours i
 area_df.loc[:, "Neighbours"] = np.array(
     [area_df.index[area_df["GUID"].isin(neighbours)].tolist() for neighbours in area_df.Neighbours.values],
     dtype=object)
-area_df.replace({"County": {county: c for c, county in enumerate(area_df.County.unique())}}, inplace=True)
+area_df = area_df.replace({"County": {county: c for c, county in enumerate(area_df.County.unique())}})
 
 
 # Saving .txt files
@@ -52,8 +52,8 @@ for file in files:
 constituency_list = set(area_df.Constituency.values)
 constituency_df = pd.read_csv(os.path.join(data_dir, "Constituency_data.csv"))
 constituency_df = constituency_df[constituency_df["Constituency"].isin(constituency_list)]
-constituency_df.sort_values("Seats", inplace=True)
-constituency_df.reset_index(drop=True, inplace=True)
+constituency_df = constituency_df.sort_values("Seats")
+constituency_df = constituency_df.reset_index(drop=True)
 constituency_list, seat_list = constituency_df.Constituency, constituency_df.Seats
 area_df["Configuration"] = -1
 for q, constituency in enumerate(constituency_list):
