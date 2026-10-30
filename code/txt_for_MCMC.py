@@ -2,7 +2,13 @@ import numpy as np
 import pandas as pd
 import sys
 import os
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+    plt_imported = True
+except ImportError as e:
+    print("matplotlib.pyplot not found; skipping histogram plots.")
+    print(e, file=sys.stderr)
+    plt_imported = False
 
 
 # Area from command line
@@ -64,29 +70,30 @@ with open(os.path.join(area_dir, "actual.csv"), "w") as f:
 
 
 # Comparing distributions of ED population, area, perimeter, and neighbours between area of consideration and Ireland
-colours = ["#004488", "#BB5566", "#DDAA33"]
-names = ["Ireland", area_name]
-for column in ["Population", "Area", "Perimeter"]:
-    fig, ax = plt.subplots()
-    axes = [ax, ax.twinx()]
-    for d, (data, a) in enumerate(zip([full_df[column].values, area_df[column].values], axes)):
-        hist, bins = np.histogram(data, bins=np.geomspace(min(data), max(data),
-                                                          num=int(np.ceil(np.sqrt(len(data))))))
-        a.hist(data, bins=bins, color=colours[d], alpha=.75, label=names[d])
-    ax.set_xscale("log")
-    fig.legend(bbox_to_anchor=(1,1), bbox_transform=ax.transAxes)
-    ax.set_title(column)
-    fig.savefig(os.path.join(area_dir, f"{column}.pdf"), bbox_inches="tight")
-    plt.close(fig)
-    del fig, ax
+if plt_imported:
+    colours = ["#004488", "#BB5566", "#DDAA33"]
+    names = ["Ireland", area_name]
+    for column in ["Population", "Area", "Perimeter"]:
+        fig, ax = plt.subplots()
+        axes = [ax, ax.twinx()]
+        for d, (data, a) in enumerate(zip([full_df[column].values, area_df[column].values], axes)):
+            hist, bins = np.histogram(data, bins=np.geomspace(min(data), max(data),
+                                                              num=int(np.ceil(np.sqrt(len(data))))))
+            a.hist(data, bins=bins, color=colours[d], alpha=.75, label=names[d])
+        ax.set_xscale("log")
+        fig.legend(bbox_to_anchor=(1,1), bbox_transform=ax.transAxes)
+        ax.set_title(column)
+        fig.savefig(os.path.join(area_dir, f"{column}.pdf"), bbox_inches="tight")
+        plt.close(fig)
+        del fig, ax
 
-fig, ax = plt.subplots()
-nei_lens = [[len(neighbours) for neighbours in df.Neighbours.values] for df in [full_df, area_df]]
-bins = np.arange(1, max(nei_lens[0])+2, 1)
-for d, (data, a) in enumerate(zip(nei_lens, [ax, ax.twinx()])):
-    a.hist(data, bins=bins, color=colours[d], alpha=.75, label=names[d])
-fig.legend(bbox_to_anchor=(1,1), bbox_transform=ax.transAxes)
-ax.set_title("Neighbours")
-fig.savefig(os.path.join(area_dir, "Neighbours.pdf"), bbox_inches="tight")
-plt.close("all")
-del fig, ax
+    fig, ax = plt.subplots()
+    nei_lens = [[len(neighbours) for neighbours in df.Neighbours.values] for df in [full_df, area_df]]
+    bins = np.arange(1, max(nei_lens[0])+2, 1)
+    for d, (data, a) in enumerate(zip(nei_lens, [ax, ax.twinx()])):
+        a.hist(data, bins=bins, color=colours[d], alpha=.75, label=names[d])
+    fig.legend(bbox_to_anchor=(1,1), bbox_transform=ax.transAxes)
+    ax.set_title("Neighbours")
+    fig.savefig(os.path.join(area_dir, "Neighbours.pdf"), bbox_inches="tight")
+    plt.close("all")
+    del fig, ax
