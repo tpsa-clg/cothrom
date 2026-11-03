@@ -16,14 +16,9 @@ namespace
     if (seed_env != nullptr)
     {
       try { return std::stoul(seed_env); }
-      catch (const std::exception&)
-      {
-        // If the environment variable is not a valid number,
-        // fall back to a hardware-based random seed
-        return std::random_device{}();
-      }
+      catch (const std::exception&) {}
     }
-    // Default seed for reproducibility when SEED is not explicitly set
+    // default seed for reproducibility when SEED is not explicitly set or is invalid
     return 1234;
   }
 }
