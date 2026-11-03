@@ -5,6 +5,7 @@ This repository developed by [The Problem Solving Association CLG.](https://tpsa
 ## Set-Up
 
 The required Python packages can be installed in a virtual environment or by creating a Singularity container
+
 ```sh
 # Virtual environment
 python3 -m venv .venv
@@ -16,6 +17,7 @@ make container  # singularity build cothrom.sif cothrom.def
 ```
 
 C++ executables are compiled using CMake
+
 ```sh
 make cpp        # cmake -S . -B build/ ; cmake --build build/
 ```
@@ -23,6 +25,7 @@ make cpp        # cmake -S . -B build/ ; cmake --build build/
 ## Preliminary Data
 
 The `code/combine_data.py` script obtains and re-organises publicly available electoral division population and geographical data into a `.csv` file for the constituency optimisation stage
+
 ```sh
 # Virtual environment
 python code/combine_data.py
@@ -38,6 +41,7 @@ Unless they already exist in the `data/` directory, the [population](https://dat
 ### Preparing data for area of consideration
 
 The `txt_for_MCMC.py` script prepares `.txt` files for ED identifier, population, neighbours, and county data of a given area to be used by the optimisation algorithm
+
 ```sh
 # Virtual environment
 python code/txt_for_MCMC.py <area_type> <area_list> <area_name>
@@ -63,17 +67,29 @@ The Python script also prepares a `.csv` for the 2023 electoral boundaries (unde
 ### Running the algorithm
 
 The `MCMC_SA` executable finds optimal constituency configurations for a given area and algorithm parameters
+
 ```sh
 ./build/MCMC_SA <area_name> <seat_makeup> <coupling_constants> <measured_discarded_sweeps>
 ```
+
 where `<area_name>` is defined as above, `<seat_makeup>` is a comma-separated list of the number of seats in each constituency, `<coupling_constants>` is a comma-separated list of the weights given to each objective (except for equality of representation), and `<measured_discarded_sweeps>` is a comma-separated pair of numbers of sweeps for expected value calculations and sampling thermalisation, respectively, e.g.
+
 ```sh
 ./build/MCMC_SA "Midland counties" 2,3,3,3 2,1,3 5000,100
 ./build/MCMC_SA Limerick 3,4 0,0,0 1000,0
 ./build/MCMC_SA Cork 3,3,4,5,5 4,0.72,0 10000,1000
 ```
 
+Seeds for the random number generators can be set via
+
+```sh
+export SEED=<seed>
+```
+
+where the default value `1234` is used otherwise.
+
 The Hamiltonians for the 2023 electoral boundaries are inserted into `actual.csv` via
+
 ```sh
 ./build/actual_H <area_name>
 ```
@@ -81,6 +97,7 @@ The Hamiltonians for the 2023 electoral boundaries are inserted into `actual.csv
 ## Analysing & Visualising Results
 
 The `plot_stats.py` and `plot_config.py` scripts plot observables of interest and initial and final constituency configurations for a given algorithm run
+
 ```sh
 # Virtual environment
 python code/plot_{stats,config}.py <area_name> <run_ID>
