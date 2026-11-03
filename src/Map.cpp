@@ -3,11 +3,33 @@
 #include <algorithm>
 #include <numeric>
 #include <random>
+#include <string>
 #include <omp.h>
 #include "Map.h"
 
+namespace
+{
+  // Helper function to determine the random seed
+  unsigned int get_random_seed()
+  {
+    const char* seed_env = std::getenv("SEED");
+    if (seed_env != nullptr)
+    {
+      try { return std::stoul(seed_env); }
+      catch (const std::exception&)
+      {
+        // If the environment variable is not a valid number,
+        // fall back to a hardware-based random seed
+        return std::random_device{}();
+      }
+    }
+    // Default seed for reproducibility when SEED is not explicitly set
+    return 1234;
+  }
+}
+
 // random number generator and standard uniform distribution
-std::mt19937 r(1234);
+std::mt19937 r(get_random_seed());
 std::uniform_real_distribution<double> standard_uniform(0., 1.);
 
 // Minimum number of constituencies (Q_) at which parallelising the per-site
