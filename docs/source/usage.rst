@@ -5,7 +5,7 @@ Usage
 .. _setup:
 
 Set-Up
-------------
+------
 
 The required Python packages can be installed in a virtual environment
 
@@ -57,7 +57,7 @@ The ``txt_for_MCMC.py`` script prepares ``.txt`` files for ED identifier, popula
 
 ``<area_type>`` denotes the column from which data is selected, and must be one of ``GUID``, ``County``, ``"Administrative Region"``, ``Constituency``, or ``LEA``.
 ``<area_list>`` denotes the list of column entries defining the area of consideration, and must be provided as a comma-separated list.
-``<area_name`` is the user's nickname for the area under consideration, where generated data is saved in the directory ``data/<area_name>``.
+``<area_name>`` is the user's nickname for the area under consideration, where generated data is saved in the directory ``data/<area_name>``.
 For example, the following pairs of ``<area_type> <area_list>`` are equivalent for preparing for County Cork:
 
 .. code-block:: bash
