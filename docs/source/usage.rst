@@ -7,23 +7,21 @@ Usage
 Set-Up
 ------------
 
-The required Python packages can be installed in a virtual environment or by creating a Singularity container
-
-.. prompt:: bash $ auto
-
-    # Virtual environment
-    $ python3 -m venv .venv
-    $ source .venv/bin/activate
-    $ pip install -r requirements.txt
-
-    # Singularity container
-    $ make container	# singularity build cothrom.sif cothrom.def
-
-C++ executables are compiled using CMake
+The required Python packages can be installed in a virtual environment
 
 .. prompt:: bash
 
-    make cpp		# cmake -S . -B build/ ; cmake --build build/
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+
+or by creating a Singularity container
+
+.. include:: /snippets/container.rst
+
+C++ executables are compiled using CMake
+
+.. include:: /snippets/cpp.rst
 
 
 .. _prelim:
@@ -33,13 +31,7 @@ Preliminary Data
 
 The ``code/combine_data.py`` script obtains and re-organises publicly available electoral division population and geographical data into a CSV file for the constituency optimisation stage.
 
-.. prompt:: bash $ auto
-
-    # Virtual environment
-    $ python code/combine_data.py
-
-    # Singularity container
-    $ make ED_data	# singularity run cothrom.sif code/combine_data.py
+.. include:: /snippets/combine_data.rst
 
 Unless they already exist in the ``data/`` directory, the `population`_ ``F1060*.csv`` and `geographical`_ ``*100m*.geojson`` files are downloaded.
 The `geographical file`_ ``Counties*.geojson`` is also downloaded for county boundaries for use in plotting results.
@@ -61,13 +53,7 @@ Preparing data for area of consideration
 
 The ``txt_for_MCMC.py`` script prepares ``.txt`` files for ED identifier, population, neighbours, and county data of a given area to be used by the optimisation algorithm.
 
-.. prompt:: bash $ auto
-
-    # Virtual environment
-    $ python code/txt_for_MCMC.py <area_type> <area_list> <area_name>
-
-    # Singularity container
-    $ make prepare AREA_TYPE=<area_type> AREA_LIST=<area_list> AREA_NAME=<area_name>	# singularity run cothrom.sif code/txt_for_MCMC.py <area_type> <area_list> <area_name>
+.. include:: /snippets/txt_for_MCMC.rst
 
 ``<area_type>`` denotes the column from which data is selected, and must be one of ``GUID``, ``County``, ``"Administrative Region"``, ``Constituency``, or ``LEA``.
 ``<area_list>`` denotes the list of column entries defining the area of consideration, and must be provided as a comma-separated list.
@@ -90,9 +76,7 @@ Running the algorithm
 
 The ``MCMC_SA`` executable finds optimal constituency configurations for a given area and algorithm parameters
 
-.. prompt:: bash
-
-    ./build/MCMC_SA <area_name> <seat_makeup> <coupling_constants> <measured_discarded_sweeps>
+.. include:: /snippets/MCMC_SA.rst
 
 where ``<area_name>`` is defined as above, ``<seat_makeup>`` is a comma-separated list of the number of seats in each constituency, ``<coupling_constants>`` is a comma-separated list of the weights given to each objective (except for equality of representation), and ``<measured_discarded_sweeps>`` is a comma-separated pair of numbers of sweeps for expected value calculations and sampling thermalisation, respectively, e.g.
 
@@ -112,9 +96,7 @@ where the default value ``1234`` is used otherwise.
 
 The Hamiltonians for the 2023 electoral boundaries are inserted into ``actual.csv`` via
 
-.. prompt:: bash
-
-    ./build/actual_H <area_name>
+.. include:: /snippets/actual_H.rst
 
 
 .. _analysing:
@@ -147,16 +129,14 @@ Plots are saved to ``data/<area_name>/<seats>_<constituencies>``.
 Pareto Analysis
 ---------------
 
-Additionally provided is a shell script for parallel runs over algorithm parameters using Slurm, and a Python script for multi-criteria decision analysis.
+Additionally provided is a shell script for parallel runs over algorithm parameters using Slurm
 
-.. prompt:: bash $ auto
+.. prompt:: bash
 
-    $ bash code/Pareto.sh
+    bash code/Pareto.sh
 
-    # Virtual environment
-    $ python code/plot_Pareto.py <area_name> <seats> <constituencies>
+and a Python script for multi-criteria decision analysis
 
-    # Singularity container
-    $ singularity run --bind ${PWD} cothrom.sif code/plot_Pareto.py <area_name> <seats> <constituencies>
+.. include:: /snippets/plot_Pareto.rst
 
 ``Pareto.sh`` can be modified for custom parameter sets. Plots of the resulting Pareto fronts can be found at ``data/<area_name>/<seats>_<constituencies>/Pareto.pdf``.

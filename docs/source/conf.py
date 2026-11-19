@@ -17,7 +17,7 @@ release = 'v0.0.0'
 extensions = ['sphinx_rtd_theme', 'sphinx-prompt']
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns = ["snippets"]
 
 
 

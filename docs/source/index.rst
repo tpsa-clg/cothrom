@@ -8,7 +8,7 @@ The algorithm used by the C++ scripts is detailed in the `pre-print`_ introducin
 .. _The Problem Solving Association CLG.: https://tpsa.ie/problem-solving/
 .. _pre-print: https://arxiv.org/abs/2606.20637
 
-Check out the :doc:`usage` section for further information, including how to :ref:`set up <setup>` the code.
+Check out the :doc:`usage` section for instructions on running the code, and the :doc:`reference` section for details on commands and scripts.
 
 .. note::
 
@@ -18,4 +18,5 @@ Check out the :doc:`usage` section for further information, including how to :re
 .. toctree::
 
     usage
+    reference
 
