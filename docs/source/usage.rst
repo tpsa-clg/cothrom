@@ -29,12 +29,8 @@ The ``code/combine_data.py`` script obtains and re-organises publicly available 
 
 .. include:: /snippets/combine_data.rst
 
-Unless they already exist in the ``data/`` directory, the `population`_ ``F1060*.csv`` and `geographical`_ ``*100m*.geojson`` files are downloaded.
-The `geographical file`_ ``Counties*.geojson`` is also downloaded for county boundaries for use in plotting results.
-
-.. _population: https://data.cso.ie/table/F1060
-.. _geographical: https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m
-.. _geographical file: https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m
+Unless they already exist in the ``data/`` directory, the `population <https://data.cso.ie/table/F1060>`_ ``F1060*.csv`` and `geographical <https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m>`_ ``*100m*.geojson`` files are downloaded.
+The `geographical file <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_ ``Counties*.geojson`` is also downloaded for county boundaries for use in plotting results.
 
 
 Finding Optimal Constituencies

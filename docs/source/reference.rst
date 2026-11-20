@@ -269,7 +269,20 @@ prepare the text files or something, see `code/txt_for_MCMC.py`_
 Input files
 -----------
 
-input files or something
+\*100m\*.geojson
+................
+
+ED geographical data or something, `webpage <https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m>`_, `code/combine_data.py`_ uses `API <https://data-osi.opendata.arcgis.com/api/download/v1/items/a55332e0d15148688e06893086cb023b/geojson?layers=1>`_, used for plotting in `code/plot_config.py`_
+
+Counties\*.geojson
+..................
+
+county geographical data or something, `webpage <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_, `code/combine_data.py`_ uses `API <https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0>`_, used for plotting in `code/plot_config.py`_
+
+F1060\*.csv
+...........
+
+population data or something, `webpage <https://data.cso.ie/table/F1060>`_, `code/combine_data.py`_ uses `API <https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.PxAPIv1/en/76/C2022P1/F1060?query=%7B%22query%22:%5B%7B%22code%22:%22STATISTIC%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22F1060C01%22%5D%7D%7D,%7B%22code%22:%22C02199V02655%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22-%22%5D%7D%7D%5D,%22response%22:%7B%22format%22:%22csv%22,%22pivot%22:null,%22codes%22:true%7D%7D>`_
 
 
 Generated files
