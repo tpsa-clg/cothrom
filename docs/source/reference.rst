@@ -2,10 +2,8 @@ Reference
 =========
 
 
-.. _python:
-
 Python scripts
-------------------------
+--------------
 
 code/combine_data.py
 ....................
@@ -105,8 +103,6 @@ prepares for MCMC or something
     name of area or something
 
 
-.. _C++:
-
 C++ scripts
 -----------
 
@@ -148,8 +144,6 @@ main algorithm or something
 
     measurement and thermalising sweeps or something
 
-
-.. _bash:
 
 Bash scripts
 -------------
@@ -222,8 +216,6 @@ Slurm script for Pareto analysis or something
     number of OpenMP threads or something
 
 
-.. _env:
-
 Environment variables
 ---------------------
 
@@ -238,13 +230,11 @@ SEED
 random number seed or something, default 1234
 
 
-.. _make:
-
 Makefile targets
 ----------------
 
 container
-...
+.........
 
 .. program:: make container
 
@@ -261,16 +251,26 @@ make the executables or something
 
 .. include:: /snippets/cpp.rst
 
+ED_data
+.......
 
-.. _input:
+.. program:: make ED_data
+
+makes ``ED_data.csv`` or something, see `code/combine_data.py`_
+
+prepare
+.......
+
+.. program:: make prepare
+
+prepare the text files or something, see `code/txt_for_MCMC.py`_
+
 
 Input files
 -----------
 
 input files or something
 
-
-.. _output:
 
 Generated files
 ---------------

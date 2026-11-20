@@ -2,8 +2,6 @@ Usage
 =====
 
 
-.. _setup:
-
 Set-Up
 ------
 
@@ -24,8 +22,6 @@ C++ executables are compiled using CMake
 .. include:: /snippets/cpp.rst
 
 
-.. _prelim:
-
 Preliminary Data
 ----------------
 
@@ -41,12 +37,8 @@ The `geographical file`_ ``Counties*.geojson`` is also downloaded for county bou
 .. _geographical file: https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m
 
 
-.. _finding:
-
 Finding Optimal Constituencies
 ------------------------------
-
-.. _preparing:
 
 Preparing data for area of consideration
 ........................................
@@ -68,8 +60,6 @@ For example, the following pairs of ``<area_type> <area_list>`` are equivalent f
     LEA FERMOY,"BANTRY-WEST CORK",CARRIGALINE,MIDLETON,MACROOM,"SKIBBEREEN-WEST CORK","CORK CITY SOUTH WEST",KANTURK,MALLOW,"BANDON-KINSALE",COBH,"CORK CITY NORTH EAST","CORK CITY SOUTH EAST","CORK CITY SOUTH CENTRAL","CORK CITY NORTH WEST"
 
 The Python script also prepares a CSV for the 2023 electoral boundaries (under ``data/<area_name>/actual.csv``) in the same format as the algorithm output for comparison.
-
-.. _running:
 
 Running the algorithm
 .....................
@@ -99,8 +89,6 @@ The Hamiltonians for the 2023 electoral boundaries are inserted into ``actual.cs
 .. include:: /snippets/actual_H.rst
 
 
-.. _analysing:
-
 Analysing & Visualising Results
 -------------------------------
 
@@ -123,8 +111,6 @@ The ``plot_stats.py`` and ``plot_config.py`` scripts plot observables of interes
 
 Plots are saved to ``data/<area_name>/<seats>_<constituencies>``.
 
-
-.. _pareto:
 
 Pareto Analysis
 ---------------
