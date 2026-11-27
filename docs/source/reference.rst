@@ -131,15 +131,13 @@ Bash scripts ``code/*.sh``
 Environment variables
 ---------------------
 
-OMP_NUM_THREADS
-...............
+.. envvar:: OMP_NUM_THREADS
 
-number of OpenMP threads or something
+    number of OpenMP threads TODO
 
-SEED
-....
+.. envvar:: SEED
 
-random number seed or something, default 1234
+    random number seed, default 1234 TODO
 
 
 Makefile targets
