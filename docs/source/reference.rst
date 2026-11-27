@@ -107,75 +107,25 @@ C++ scripts ``src/*.cpp``
     :arg <measured_discarded_sweeps>: measurement and thermalising sweeps TODO
 
 
-Bash scripts
--------------
+Bash scripts ``code/*.sh``
+--------------------------
 
-code/Pareto.sh
-..............
+.. script:: Pareto.sh
 
-.. program:: Pareto.sh
+    Slurm script for Pareto analysis TODO
 
-Slurm script for Pareto analysis or something
-
-.. confval:: area_type
-    :type: ``string``
-
-    type of area or something
-
-.. confval:: area_list
-    :type: ``string``
-
-    list of areas or something
-
-.. confval:: area_name
-    :type: ``string``
-
-    name of area or something
-
-.. confval:: seats
-    :type: ``integer``
-
-    number of seats or something
-
-.. confval:: constituencies
-    :type: ``integer``
-
-    number of constituencies or something
-
-.. confval:: seat_configs
-    :type: ``array[string]``
-
-    constituency seat makeups for Pareto analysis or something
-
-.. confval:: JC_proportion
-    :type: ``float``
-
-    proportion of total objective weight given to contiguity or something
-
-.. confval:: JDs
-    :type: ``array[float]``
-
-    compactness objective weights or something
-
-.. confval:: JBs
-    :type: ``array[float]``
-
-    county boundary objective weights or something
-
-.. confval:: N_meas
-    :type: ``integer``
-
-    measurement sweeps or something
-
-.. confval:: N_disc
-    :type: ``integer``
-
-    thermalising sweeps or something
-
-.. confval:: threads
-    :type: ``integer``
-
-    number of OpenMP threads or something
+    :conf string area_type: type of area TODO
+    :conf string area_list: list of areas TODO
+    :conf string area_name: name of area TODO
+    :conf integer seats: number of seats TODO
+    :conf integer constituencies: number of constituencies TODO
+    :conf array[string] seat_configs: constituency seat makeups for Pareto analysis TODO
+    :conf float JC_proportion: proportion of total objective weight given to contiguity TODO
+    :conf array[float] JDs: compactness objective weights TODO
+    :conf array[float] JBs: county boundary objective weights TODO
+    :conf integer N_meas: measurement sweeps TODO
+    :conf integer N_dics: thermalising sweeps TODO
+    :conf integer threads: number of OpenMP threads TODO
 
 
 Environment variables

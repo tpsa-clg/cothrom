@@ -19,7 +19,7 @@ extensions = ['sphinx_rtd_theme', 'sphinx-prompt']
 templates_path = ['_templates']
 exclude_patterns = ["snippets"]
 
-from sphinx.util.docfields import Field, GroupedField
+from sphinx.util.docfields import Field, GroupedField, TypedField
 
 def setup(app):
     app.add_object_type(
@@ -58,6 +58,11 @@ def setup(app):
                          names=("env",),
                          label="Environment variables",
                          rolename="envvar"),
+            TypedField(name="conf",
+                       names=("conf",),
+                       typenames=("type",),
+                       label="Configuration values",
+                       rolename="confval"),
             GroupedField(name="input",
                          names=("input",),
                          label="Input data",
