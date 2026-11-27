@@ -15,7 +15,6 @@ Python scripts ``code/*.py``
 
     :input F1060\*.csv: TODO
     :input \*100m\*.geojson: TODO
-    :input Counties\*.geojson: TODO
     :output ED\_data.csv: TODO
     :output Constituency\_data.csv: TODO
 
@@ -35,8 +34,10 @@ Python scripts ``code/*.py``
     
     :arg <area_name>: name of area TODO
     :arg <run_ID>: ID number for algorithm run TODO
-    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO
-    :output Configurations\_<run_ID>.pdf: TODO - also add i/o files from below
+    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO (or actual)
+    :input \*100m\*.geojson: TODO
+    :input Counties\*.geojson: TODO
+    :output Configurations\_<run_ID>.pdf: TODO
 
 .. script:: plot_Pareto.py
 
@@ -49,6 +50,9 @@ Python scripts ``code/*.py``
     :arg <area_name>: name of area TODO
     :arg <seats>: number of seats TODO
     :arg <constituencies>: number of constituencies TODO
+    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO (multiple)
+    :input actual.csv: TODO (optional)
+    :output Pareto.pdf: TODO
 
 .. script:: plot_stats.py
 
@@ -66,6 +70,10 @@ Python scripts ``code/*.py``
 
     :arg <area_name>: name of area TODO
     :arg <run_ID>: ID number for algorithm run TODO
+    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO
+    :output Objectives_per_observable_<run_ID>.pdf: TODO
+    :output Observables_per_objective_<run_ID>.pdf: TODO
+    :output Runtime_Acceptance_<run_ID>.pdf: TODO
 
 .. script:: txt_for_MCMC.py
 
@@ -78,6 +86,17 @@ Python scripts ``code/*.py``
     :arg <area_type>: type of area TODO
     :arg <area_list>: list of areas TODO
     :arg <area_name>: name of area TODO
+    :input ED_data.csv: TODO
+    :input Constituency_data.csv: TODO
+    :output GUID.txt: TODO
+    :output Population.txt: TODO
+    :output Neighbours.txt: TODO
+    :output County.txt: TODO
+    :output actual.csv: TODO
+    :output Population.pdf: TODO
+    :output Area.pdf: TODO
+    :output Perimeter.pdf: TODO
+    :output Neighbours.pdf: TODO
 
 
 C++ scripts ``src/*.cpp``
@@ -92,6 +111,11 @@ C++ scripts ``src/*.cpp``
     .. include:: /snippets/actual_H.rst
 
     :arg <area_name>: name of area TODO
+    :input actual.csv: TODO
+    :input Population.txt: TODO
+    :input Neighbours.txt: TODO
+    :input County.txt: TODO
+    :output actual.csv: TODO
 
 .. script:: MCMC_SA.cpp
 
@@ -107,6 +131,10 @@ C++ scripts ``src/*.cpp``
     :arg <measured_discarded_sweeps>: measurement and thermalising sweeps TODO
     :env OMP_NUM_THREADS: number of threads TODO
     :env SEED: random seed TODO
+    :input Population.txt: TODO
+    :input Neighbours.txt: TODO
+    :input County.txt: TODO
+    :output <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO
 
 
 Bash scripts ``code/*.sh``
@@ -127,7 +155,21 @@ Bash scripts ``code/*.sh``
     :conf array[float] JBs: county boundary objective weights TODO
     :conf integer N_meas: measurement sweeps TODO
     :conf integer N_dics: thermalising sweeps TODO
-    :conf integer threads: number of OpenMP threads TODO
+    :conf integer threads: see :envvar:`OMP_NUM_THREADS` TODO
+    :env SEED: TODO
+    :input F1060\*.csv: see :script:`combine_data.py` TODO
+    :input \*100m\*.geojson: see :script:`combine_data.py` TODO
+    :output ED_data.csv: see :script:`combine_data.py` TODO
+    :output GUID.txt: see :script:`txt_for_MCMC.py` TODO
+    :output Population.txt: see :script:`txt_for_MCMC.py` TODO
+    :output Neighbours.txt: see :script:`txt_for_MCMC.py` TODO
+    :output County.txt: see :script:`txt_for_MCMC.py` TODO
+    :output actual.csv: see :script:`txt_for_MCMC.py` TODO
+    :output Population.pdf: see :script:`txt_for_MCMC.py` TODO
+    :output Area.pdf: see :script:`txt_for_MCMC.py` TODO
+    :output Perimeter.pdf: see :script:`txt_for_MCMC.py` TODO
+    :output Neighbours.pdf: see :script:`txt_for_MCMC.py` TODO
+    :output <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO (multiple)
 
 
 Environment variables
@@ -163,34 +205,44 @@ Makefile targets
 
 .. maketarget:: ED_data
 
-    makes ``ED_data.csv``, see :script:`combine_data.py` TODO
+    makes :datafile:`ED_data.csv`, see :script:`combine_data.py` TODO
+
+    :dependency container: TODO
 
 .. maketarget:: prepare
 
     prepare the text files, see :script:`txt_for_MCMC.py` TODO
 
-    :arg AREA_TYPE: type of area TODO
-    :arg AREA_LIST: list of areas TODO
-    :arg AREA_NAME: name of area TODO
+    :dependency ED_data: TODO
 
 
 Input files
 -----------
 
-data/\*100m\*.geojson
-.....................
+.. datafile:: *100m*.geojson
 
-ED geographical data or something, `webpage <https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m>`_, :script:`combine_data.py` uses `API <https://data-osi.opendata.arcgis.com/api/download/v1/items/a55332e0d15148688e06893086cb023b/geojson?layers=1>`_, used by :script:`plot_config.py`
+    ED geographical data TODO
 
-data/Counties\*.geojson
-.......................
+    :directory: ``data/``
+    :source: `webpage <https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m>`_ TODO
+    :usedby combine_data.py: TODO
+    :usedby plot_config.py: TODO
 
-county geographical data or something, `webpage <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_, :script:`combine_data.py` uses `API <https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0>`_, used by :script:`plot_config.py`
+.. datafile:: Counties*.geojson
 
-data/F1060\*.csv
-................
+    county geographical data TODO
 
-population data or something, `webpage <https://data.cso.ie/table/F1060>`_, :script:`combine_data.py` uses `API <https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.PxAPIv1/en/76/C2022P1/F1060?query=%7B%22query%22:%5B%7B%22code%22:%22STATISTIC%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22F1060C01%22%5D%7D%7D,%7B%22code%22:%22C02199V02655%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22-%22%5D%7D%7D%5D,%22response%22:%7B%22format%22:%22csv%22,%22pivot%22:null,%22codes%22:true%7D%7D>`_
+    :directory: ``data/``
+    :source: `webpage <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_ TODO
+    :usedby plot_config.py: TODO
+
+.. datafile:: F1060*.csv
+
+    population data TODO
+
+    :directory: ``data/``
+    :source: `webpage <https://data.cso.ie/table/F1060>`_ TODO
+    :usedby combine_data.py: TODO
 
 
 Generated files
