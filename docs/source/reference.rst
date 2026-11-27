@@ -19,94 +19,65 @@ Python scripts ``code/*.py``
     :output ED\_data.csv: TODO
     :output Constituency\_data.csv: TODO
 
+.. script:: plot_config.py
 
-code/plot_config.py
-...................
+    plots configurations TODO
 
-.. program:: plot_config.py
+    :usage:
 
-plots configurations or something
+    .. prompt:: bash $ auto
 
-.. prompt:: bash $ auto
+        # Virtual environment
+        $ python code/plot_config.py <area_name> <run_ID>
 
-    # Virtual environment
-    $ python code/plot_config.py <area_name> <run_ID>
+        # Singularity container
+        $ singularity run --bind ${PWD} cothrom.sif code/plot_config.py <area_name> <run_ID>
+    
+    :arg <area_name>: name of area TODO
+    :arg <run_ID>: ID number for algorithm run TODO
+    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO
+    :output Configurations\_<run_ID>.pdf: TODO - also add i/o files from below
 
-    # Singularity container
-    $ singularity run --bind ${PWD} cothrom.sif code/plot_config.py <area_name> <run_ID>
+.. script:: plot_Pareto.py
 
-.. option:: <area_name>
+    plots Pareto fronts TODO
 
-    name of area or something
+    :usage:
 
-.. option:: <run_ID>
+    .. include:: /snippets/plot_Pareto.rst
 
-    ID number for algorithm run or something
+    :arg <area_name>: name of area TODO
+    :arg <seats>: number of seats TODO
+    :arg <constituencies>: number of constituencies TODO
 
-code/plot_Pareto.py
-....................
+.. script:: plot_stats.py
 
-.. program:: plot_Pareto.py
+    plots observable statistics TODO
 
-plots Pareto fronts or something
+    :usage:
 
-.. include:: /snippets/plot_Pareto.rst
+    .. prompt:: bash $ auto
 
-.. option:: <area_name>
+        # Virtual environment
+        $ python code/plot_stats.py <area_name> <run_ID>
 
-    name of area or something
+        # Singularity container
+        $ singularity run --bind ${PWD} cothrom.sif code/plot_stats.py <area_name> <run_ID>
 
-.. option:: <seats>
+    :arg <area_name>: name of area TODO
+    :arg <run_ID>: ID number for algorithm run TODO
 
-    number of seats or something
+.. script:: txt_for_MCMC.py
 
-.. option:: <constituencies>
+    prepares for MCMC TODO
 
-    number of constituencies or something
+    :usage:
 
-code/plot_stats.py
-...................
+    .. include:: /snippets/txt_for_MCMC.rst
 
-.. program:: plot_stats.py
-
-plots observable statistics or something
-
-.. prompt:: bash $ auto
-
-    # Virtual environment
-    $ python code/plot_stats.py <area_name> <run_ID>
-
-    # Singularity container
-    $ singularity run --bind ${PWD} cothrom.sif code/plot_stats.py <area_name> <run_ID>
-
-.. option:: <area_name>
-
-    name of area or something
-
-.. option:: <run_ID>
-
-    ID number for algorithm run or something
-
-code/txt_for_MCMC.py
-....................
-
-.. program:: txt_for_MCMC.py
-
-prepares for MCMC or something
-
-.. include:: /snippets/txt_for_MCMC.rst
-
-.. option:: <area_type>
-
-    type of area or something
-
-.. option:: <area_list>
-
-    list of areas or something
-
-.. option:: <area_name>
-
-    name of area or something
+    :arg <area_type>: type of area TODO
+    :arg <area_list>: list of areas TODO
+    :arg <area_name>: name of area TODO
 
 
 C++ scripts
@@ -269,7 +240,7 @@ prepare
 
 .. program:: make prepare
 
-prepare the text files or something, see `code/txt_for_MCMC.py`_
+prepare the text files or something, see :script:`txt_for_MCMC.py`
 
 
 Input files
@@ -278,12 +249,12 @@ Input files
 data/\*100m\*.geojson
 .....................
 
-ED geographical data or something, `webpage <https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m>`_, :script:`combine_data.py` uses `API <https://data-osi.opendata.arcgis.com/api/download/v1/items/a55332e0d15148688e06893086cb023b/geojson?layers=1>`_, used by `code/plot_config.py`_
+ED geographical data or something, `webpage <https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m>`_, :script:`combine_data.py` uses `API <https://data-osi.opendata.arcgis.com/api/download/v1/items/a55332e0d15148688e06893086cb023b/geojson?layers=1>`_, used by :script:`plot_config.py`
 
 data/Counties\*.geojson
 .......................
 
-county geographical data or something, `webpage <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_, :script:`combine_data.py` uses `API <https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0>`_, used by `code/plot_config.py`_
+county geographical data or something, `webpage <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_, :script:`combine_data.py` uses `API <https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0>`_, used by :script:`plot_config.py`
 
 data/F1060\*.csv
 ................
@@ -297,84 +268,84 @@ Generated files
 data/Constituency_data.csv
 ..........................
 
-2023 constituency seats or something, generated by :script:`combine_data.py`, used by `code/txt_for_MCMC.py`_
+2023 constituency seats or something, generated by :script:`combine_data.py`, used by :script:`txt_for_MCMC.py`
 
 data/ED_data.csv
 ................
 
-electoral division data required for cothrom framework or something, generated by :script:`combine_data.py`, used by `code/txt_for_MCMC.py`_
+electoral division data required for cothrom framework or something, generated by :script:`combine_data.py`, used by :script:`txt_for_MCMC.py`
 
 data/<area_name>/actual.csv
 ...........................
 
-2023 constituency configuration or something, generated by `code/txt_for_MCMC.py`_ and `src/actual_H.cpp`_, used by `code/plot_config.py`_ and `code/plot_Pareto.py`_
+2023 constituency configuration or something, generated by :script:`txt_for_MCMC.py` and `src/actual_H.cpp`_, used by :script:`plot_config.py` and :script:`plot_Pareto.py`
 
 data/<area_name>/Area.pdf
 .........................
 
-histograms of electoral division areas or something, generated by `code/txt_for_MCMC.py`_
+histograms of electoral division areas or something, generated by :script:`txt_for_MCMC.py`
 
 data/<area_name>/County.txt
 ...........................
 
-list of electoral division counties or something, generated by `code/txt_for_MCMC.py`_, used by `src/MCMC_SA.cpp`_
+list of electoral division counties or something, generated by :script:`txt_for_MCMC.py`, used by `src/MCMC_SA.cpp`_
 
 data/<area_name>/GUID.txt
 .........................
 
-list of electoral division GUIDs or something, generated by `code/txt_for_MCMC.py`_, used by `src/MCMC_SA.cpp`_ and `code/plot_config.py`_
+list of electoral division GUIDs or something, generated by :script:`txt_for_MCMC.py`, used by `src/MCMC_SA.cpp`_ and :script:`plot_config.py`
 
 data/<area_name>/Neighbours.pdf
 ...............................
 
-histograms of number of electoral division neighbours or something, generated by `code/txt_for_MCMC.py`_
+histograms of number of electoral division neighbours or something, generated by :script:`txt_for_MCMC.py`
 
 data/<area_name>/Neighbours.txt
 ...............................
 
-list of number of electoral division neighbours or something, generated by `code/txt_for_MCMC.py`_, used by `src/MCMC_SA.cpp`_
+list of number of electoral division neighbours or something, generated by :script:`txt_for_MCMC.py`, used by `src/MCMC_SA.cpp`_
 
 data/<area_name>/Perimeter.pdf
 ..............................
 
-histograms of electoral division perimeters or something, generated by `code/txt_for_MCMC.py`_
+histograms of electoral division perimeters or something, generated by :script:`txt_for_MCMC.py`
 
 data/<area_name>/Population.pdf
 ...............................
 
-histograms of electoral division populations or something, generated by `code/txt_for_MCMC.py`_
+histograms of electoral division populations or something, generated by :script:`txt_for_MCMC.py`
 
 data/<area_name>/Population.txt
 ...............................
 
-list of electoral division populations or something, generated by `code/txt_for_MCMC.py`_, used by `src/MCMC_SA.cpp`_ and `code/plot_config.py`_
+list of electoral division populations or something, generated by :script:`txt_for_MCMC.py`, used by `src/MCMC_SA.cpp`_ and :script:`plot_config.py`
 
 data/<area_name>/<seats>_<constituencies>/<seat_makeup>_<coupling_constants>_<run_ID>.csv
 .........................................................................................
 
-algorithm output or something, generated by `src/MCMC_SA.cpp`_, used by `code/plot_config.py`_, `code/plot_Pareto.py`_, and `code/plot_stats.py`_
+algorithm output or something, generated by `src/MCMC_SA.cpp`_, used by :script:`plot_config.py`, :script:`plot_Pareto.py`, and :script:`plot_stats.py`
 
 data/<area_name>/<seats>_<constituencies>/Configurations\_<run_ID>.pdf
 ...................................................................................
 
-plots of initial and optimal configurations or something, generated by `code/plot_config.py`_
+plots of initial and optimal configurations or something, generated by :script:`plot_config.py`
 
 data/<area_name>/<seats>_<constituencies>/Objectives\_per\_observable\_<run_ID>.pdf
 ...................................................................................
 
-plots of each objective per observable or something, generated by `code/plot_stats.py`_
+plots of each objective per observable or something, generated by :script:`plot_stats.py`
 
 data/<area_name>/<seats>_<constituencies>/Observables\_per\_objective\_<run_ID>.pdf
 ...................................................................................
 
-plots of each observable per objective or something, generated by `code/plot_stats.py`_
+plots of each observable per objective or something, generated by :script:`plot_stats.py`
 
 data/<area_name>/<seats>_<constituencies>/Pareto.pdf
 ....................................................
 
-plots of Pareto fronts or something, generated by `code/plot_Pareto.py`_
+plots of Pareto fronts or something, generated by :script:`plot_Pareto.py`
 
 data/<area_name>/<seats>_<constituencies>/Runtime\_Acceptance\_<run_ID>.pdf
 ...........................................................................
 
-plots runtimes and acceptance rates or something, generated by `code/plot_stats.py`_
+plots runtimes and acceptance rates or something, generated by :script:`plot_stats.py`
