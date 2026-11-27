@@ -139,8 +139,8 @@ C++ scripts ``src/*.cpp``
     :output <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO
 
 
-Bash scripts ``code/*.sh``
---------------------------
+Shell scripts ``code/*.sh``
+---------------------------
 
 .. script:: Pareto.sh
 
