@@ -74,6 +74,29 @@ def setup(app):
         ]
     )
 
+    app.add_object_type(
+            directivename="maketarget",
+            rolename="maketarget",
+            indextemplate="pair: %s; maketarget",
+            objname="maketarget",
+            doc_field_types=[
+                Field(name="usage",
+                      names=("usage",),
+                      label="Usage"),
+                GroupedField(name="arg",
+                             names=("arg",),
+                             label="Arguments"),
+                GroupedField(name="input",
+                             names=("input",),
+                             label="Input data",
+                             rolename="data"),
+                GroupedField(name="output",
+                             names=("output",),
+                             label="Output data",
+                             rolename="data")
+            ]
+        )
+
 
 
 # -- Options for HTML output -------------------------------------------------

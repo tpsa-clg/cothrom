@@ -105,6 +105,8 @@ C++ scripts ``src/*.cpp``
     :arg <seat_makeup>: seats per constituency TODO
     :arg <coupling_constants>: objective weights TODO
     :arg <measured_discarded_sweeps>: measurement and thermalising sweeps TODO
+    :env OMP_NUM_THREADS: number of threads TODO
+    :env SEED: random seed TODO
 
 
 Bash scripts ``code/*.sh``
@@ -143,37 +145,33 @@ Environment variables
 Makefile targets
 ----------------
 
-container
-.........
+.. maketarget:: container
 
-.. program:: make container
+    make the container TODO
 
-make the container or something
+    :usage:
 
-.. include:: /snippets/container.rst
+    .. include:: /snippets/container.rst
 
-cpp
-...
+.. maketarget:: cpp
 
-.. program:: make cpp
+    make the executables TODO
 
-make the executables or something
+    :usage:
 
-.. include:: /snippets/cpp.rst
+    .. include:: /snippets/cpp.rst
 
-ED_data
-.......
+.. maketarget:: ED_data
 
-.. program:: make ED_data
+    makes ``ED_data.csv``, see :script:`combine_data.py` TODO
 
-makes ``ED_data.csv`` or something, see :script:`combine_data.py`
+.. maketarget:: prepare
 
-prepare
-.......
+    prepare the text files, see :script:`txt_for_MCMC.py` TODO
 
-.. program:: make prepare
-
-prepare the text files or something, see :script:`txt_for_MCMC.py`
+    :arg AREA_TYPE: type of area TODO
+    :arg AREA_LIST: list of areas TODO
+    :arg AREA_NAME: name of area TODO
 
 
 Input files
