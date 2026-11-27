@@ -19,7 +19,11 @@ data_dir = os.path.join(*[os.path.dirname(os.path.realpath(__file__)), os.pardir
 area_dir = os.path.join(data_dir, area_name)
 
 # Splitting geographical data into area of consideration and surroundings
-config_gdf = gpd.read_file(os.path.join(data_dir, "100m.geojson"))[["ED_GUID", "geometry"]].rename(columns={"ED_GUID": "GUID"})
+ED_geo_file = glob(os.path.join(data_dir, f"*100m*.geojson"))
+if len(ED_geo_file) == 0:
+    raise FileNotFoundError(f"ED geography file not found in {data_dir}; run combine_data.py or download directly from Tailte Éireann.")
+ED_geo_file = ED_geo_file[0]
+config_gdf = gpd.read_file(ED_geo_file)[["ED_GUID", "geometry"]].rename(columns={"ED_GUID": "GUID"})
 GUIDs = list(np.loadtxt(os.path.join(area_dir, "GUID.txt"), dtype="str"))
 surround_gdf = config_gdf[~config_gdf.GUID.isin(GUIDs)]
 config_gdf = config_gdf.set_index("GUID").loc[GUIDs].reset_index()
@@ -62,7 +66,11 @@ variance_dict = {config: [np.sum(config_gdf[config_gdf[config]==q].Population.va
 # TODO remove surrounding data outside of frame
 cmap = plt.get_cmap("viridis")
 norm = plt.Normalize(0, Q-1)
-county_gdf = gpd.read_file(os.path.join(data_dir, "Counties.geojson"))
+county_geo_file = glob(os.path.join(data_dir, f"Counties*.geojson"))
+if len(county_geo_file) == 0:
+    raise FileNotFoundError(f"County geography file not found in {data_dir}; run combine_data.py or download directly from Tailte Éireann.")
+county_geo_file = county_geo_file[0]
+county_gdf = gpd.read_file(county_geo_file)
 pdf = mpdf.PdfPages(os.path.join(config_dir, f"Configurations_{config_id}.pdf"))
 for config in configs:
     fig, ax = plt.subplots()
