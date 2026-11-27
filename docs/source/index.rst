@@ -16,6 +16,7 @@ Check out the :doc:`usage` section for instructions on running the code, and the
 
 
 .. toctree::
+    :maxdepth: 2
 
     usage
     reference
