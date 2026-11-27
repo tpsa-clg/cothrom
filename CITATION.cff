@@ -1,0 +1,26 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: cothrom
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - name: The Problem Solving Association CLG.
+    country: IE
+    alias: TPSA
+    website: 'https://tpsa.ie/problem-solving/'
+    email: problemsolving@tpsa.ie
+  - given-names: Ruaidhrí
+    family-names: Campion
+    email: campioru@tcd.ie
+    orcid: 'https://orcid.org/0009-0005-0010-5210'
+    affiliation: 'School of Mathematics, Trinity College Dublin'
+repository-code: 'https://github.com/tpsa-clg/cothrom'
+url: 'https://cothrom.readthedocs.io'
+license: MIT
+commit: a986fbe
+version: 0.1.0
+date-released: '2026-11-27'
