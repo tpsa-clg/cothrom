@@ -227,7 +227,7 @@ Input files
     County geographies.
 
     :directory: ``data/``
-    :source: `Taile Éireann <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_ (`API <https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0>`_)
+    :source: `Tailte Éireann <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_ (`API <https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0>`_)
     :usedby plot_config.py: used to show county boundaries in constituency configuration plots
 
 .. datafile:: F1060*.csv

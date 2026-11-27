@@ -25,12 +25,12 @@ or by creating a Singularity :maketarget:`container`
 Preliminary Data
 ----------------
 
-The :script:`combine_data.py` script obtains and re-organises publicly available electoral division population and geographical data into a CSV file for the constituency optimisation stage.
+The :script:`combine_data.py` script re-organises publicly available electoral division population and geographical data into a CSV file for the constituency optimisation stage.
 
 .. include:: /snippets/combine_data.rst
 
-Unless they already exist in the ``data/`` directory, the ED population and geography files are downloaded.
-The county geography file is also downloaded for use in plotting results.
+The required ED population and geography files can be download directly from the `Central Statistics Office <https://data.cso.ie/table/F1060>`_ and `Tailte Éireann <https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m>`_ into the ``data/`` directory; otherwise, they are downloaded by :script:`combine_data.py`.
+The county geography file is also downloaded for use in plotting results, if not already done so directly from `Tailte Éireann <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_.
 
 
 Finding Optimal Constituencies
