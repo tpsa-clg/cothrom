@@ -7,20 +7,20 @@ Python scripts ``code/*.py``
 
 .. script:: combine_data.py
 
-    combines the data, downloads inputs if not already in ``data/``. TODO
+    Merges the ED population and geography data for use by the optimisation algorithm. Attempts to download :datafile:`Counties*.geojson` if not already available.
 
     :usage:
 
     .. include:: /snippets/combine_data.rst
 
-    :input F1060\*.csv: TODO
-    :input \*100m\*.geojson: TODO
-    :output ED\_data.csv: TODO
-    :output Constituency\_data.csv: TODO
+    :input F1060\*.csv: population data (downloaded if not already available)
+    :input \*100m\*.geojson: geography data (downloaded if not already available)
+    :output ED\_data.csv: all electoral division data required for the optimisation algorithm
+    :output Constituency\_data.csv: 2023 electoral constituency seats
 
 .. script:: plot_config.py
 
-    plots configurations TODO
+    Plots the initial and optimised constituency configurations for a given algorithm run, or the 2023 electoral constituencies for a given area.
 
     :usage:
 
@@ -32,33 +32,34 @@ Python scripts ``code/*.py``
         # Singularity container
         $ singularity run --bind ${PWD} cothrom.sif code/plot_config.py <area_name> <run_ID>
     
-    :arg <area_name>: name of area TODO
-    :arg <run_ID>: ID number for algorithm run TODO
-    :input \*100m\*.geojson: TODO
-    :input GUID.txt: TODO
-    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO (or actual)
-    :input Population.txt: TODO
-    :input Counties\*.geojson: TODO
-    :output Configurations\_<run_ID>.pdf: TODO
+    :arg <area_name>: name of area
+    :arg <run_ID>: ID number (timestamp) of algorithm run, or ``"actual"`` for 2023 configuration
+    :input \*100m\*.geojson: ED geography data
+    :input GUID.txt: ED identifiers
+    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: output of algorithm run (if ``<run_ID> != "actual"``)
+    :input actual.csv: 2023 electoral constituencies (if ``<run_ID> == "actual"``)
+    :input Population.txt: ED populations
+    :input Counties\*.geojson: ED counties
+    :output Configurations\_<run_ID>.pdf: constituency configuration(s)
 
 .. script:: plot_Pareto.py
 
-    plots Pareto fronts TODO
+    Plots the Pareto fronts for all algorithm runs for given numbers of seats and constituencies and a given area. Includes the 2023 constituencies if available.
 
     :usage:
 
     .. include:: /snippets/plot_Pareto.rst
 
-    :arg <area_name>: name of area TODO
-    :arg <seats>: number of seats TODO
-    :arg <constituencies>: number of constituencies TODO
-    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO (multiple)
-    :input actual.csv: TODO (optional)
-    :output Pareto.pdf: TODO
+    :arg <area_name>: name of area
+    :arg <seats>: number of seats
+    :arg <constituencies>: number of constituencies
+    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: all algorithm outputs for given seats and constituencies
+    :input actual.csv: 2023 electoral constituencies (optional)
+    :output Pareto.pdf: Pareto fronts
 
 .. script:: plot_stats.py
 
-    plots observable statistics TODO
+    Plots the evolution of energies, heat capacities, autocorrelations, runtime, and acceptance rate during the simulated annealing process of a given algorithm run.
 
     :usage:
 
@@ -70,35 +71,35 @@ Python scripts ``code/*.py``
         # Singularity container
         $ singularity run --bind ${PWD} cothrom.sif code/plot_stats.py <area_name> <run_ID>
 
-    :arg <area_name>: name of area TODO
-    :arg <run_ID>: ID number for algorithm run TODO
-    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO
-    :output Objectives_per_observable_<run_ID>.pdf: TODO
-    :output Observables_per_objective_<run_ID>.pdf: TODO
-    :output Runtime_Acceptance_<run_ID>.pdf: TODO
+    :arg <area_name>: name of area
+    :arg <run_ID>: ID number (timestamp) of algorithm run
+    :input <seat_makeup>_<coupling_constants>_<run_ID>.csv: output of algorithm run
+    :output Objectives_per_observable_<run_ID>.pdf: observable plots grouped by observable type
+    :output Observables_per_objective_<run_ID>.pdf: observable plots grouped by objective
+    :output Runtime_Acceptance_<run_ID>.pdf: runtime and acceptance rate plots
 
 .. script:: txt_for_MCMC.py
 
-    prepares for MCMC TODO
+    Prepares the necessary files for algorithm runs for a given area.
 
     :usage:
 
     .. include:: /snippets/txt_for_MCMC.rst
 
-    :arg <area_type>: type of area TODO
-    :arg <area_list>: list of areas TODO
-    :arg <area_name>: name of area TODO
-    :input ED_data.csv: TODO
-    :input Constituency_data.csv: TODO
-    :output GUID.txt: TODO
-    :output Population.txt: TODO
-    :output Neighbours.txt: TODO
-    :output County.txt: TODO
-    :output actual.csv: TODO
-    :output Population.pdf: TODO
-    :output Area.pdf: TODO
-    :output Perimeter.pdf: TODO
-    :output Neighbours.pdf: TODO
+    :arg <area_type>: type of areas specified in ``<area_list>``
+    :arg <area_list>: list of areas of type ``<area_type>``
+    :arg <area_name>: custom name given to area
+    :input ED_data.csv: ED data
+    :input Constituency_data.csv: constituency seats
+    :output GUID.txt: ED identifiers
+    :output Population.txt: ED populations
+    :output Neighbours.txt: ED neighbours
+    :output County.txt: ED counties
+    :output actual.csv: 2023 electoral constituencies
+    :output Population.pdf: histogram of ED populations
+    :output Area.pdf: histogram of ED areas
+    :output Perimeter.pdf: histogram of ED perimeters
+    :output Neighbours.pdf: histogram of number of ED neighbours
 
 
 C++ scripts ``src/*.cpp``
@@ -106,37 +107,37 @@ C++ scripts ``src/*.cpp``
 
 .. script:: actual_H.cpp
 
-    actual Hamiltonian script TODO
+    Calculates and saves to :datafile:`actual.csv` the Hamiltonians of the 2023 electoral boundaries.
 
     :usage:
 
     .. include:: /snippets/actual_H.rst
 
-    :arg <area_name>: name of area TODO
-    :input actual.csv: TODO
-    :input Population.txt: TODO
-    :input Neighbours.txt: TODO
-    :input County.txt: TODO
-    :output actual.csv: TODO
+    :arg <area_name>: name of area
+    :input actual.csv: 2023 electoral constituencies
+    :input Population.txt: ED populations
+    :input Neighbours.txt: ED neighbours
+    :input County.txt: ED counties
+    :output actual.csv: 2023 electoral constituencies and corresponding Hamiltonians
 
 .. script:: MCMC_SA.cpp
 
-    main algorithm TODO
+    Optimises constituency boundaries of a given area for given makeup of constituency seats, set of objective weights, and number of sweeps per temperature.
 
     :usage:
 
     .. include:: /snippets/MCMC_SA.rst
 
-    :arg <area_name>: name of area TODO
-    :arg <seat_makeup>: seats per constituency TODO
-    :arg <coupling_constants>: objective weights TODO
-    :arg <measured_discarded_sweeps>: measurement and thermalising sweeps TODO
-    :env OMP_NUM_THREADS: number of threads TODO
-    :env SEED: random seed TODO
-    :input Population.txt: TODO
-    :input Neighbours.txt: TODO
-    :input County.txt: TODO
-    :output <seat_makeup>_<coupling_constants>_<run_ID>.csv: TODO
+    :arg <area_name>: name of area
+    :arg <seat_makeup>: seats per constituency
+    :arg <coupling_constants>: objective weights (excluding equality of representation)
+    :arg <measured_discarded_sweeps>: number of MCMC sweeps per temperature for observbale calculations and thermalisation
+    :env OMP_NUM_THREADS: number of OpenMP threads
+    :env SEED: seed for random number generation
+    :input Population.txt: ED populations
+    :input Neighbours.txt: ED neighbours
+    :input County.txt: ED counties
+    :output <seat_makeup>_<coupling_constants>_<run_ID>.csv: algorithm parameters, initial and optimised configurations, and observable evolutions
 
 
 Shell scripts ``code/*.sh``
@@ -144,35 +145,25 @@ Shell scripts ``code/*.sh``
 
 .. script:: Pareto.sh
 
-    Slurm script for Pareto analysis TODO (maybe only list inputs and outputs needed for plotting?)
+    Makes the :maketarget:`ED data <ED_data>` and :maketarget:`C++ <cpp>` executables, :maketarget:`prepares <prepare>` required text files for the algorithm, and submits Slurm jobs for parallel :script:`runs <MCMC_SA.cpp>`. The output data listed below includes only that used in the Python plotting scripts, and excludes intermediarily generated data.
 
-    :conf string area_type: type of area TODO
-    :conf string area_list: list of areas TODO
-    :conf string area_name: name of area TODO
-    :conf integer seats: number of seats TODO
-    :conf integer constituencies: number of constituencies TODO
-    :conf array[string] seat_configs: constituency seat makeups for Pareto analysis TODO
-    :conf float JC_proportion: proportion of total objective weight given to contiguity TODO
-    :conf array[float] JDs: compactness objective weights TODO
-    :conf array[float] JBs: county boundary objective weights TODO
-    :conf integer N_meas: measurement sweeps TODO
-    :conf integer N_dics: thermalising sweeps TODO
-    :conf integer threads: see :envvar:`OMP_NUM_THREADS` TODO
-    :env SEED: TODO
-    :input F1060\*.csv: see :script:`combine_data.py` TODO
-    :input \*100m\*.geojson: see :script:`combine_data.py` TODO
-    :output ED_data.csv: see :script:`combine_data.py` TODO
-    :output Constituency_data.csv: see :script:`combine_data.py` TODO
-    :output GUID.txt: see :script:`txt_for_MCMC.py` TODO
-    :output Population.txt: see :script:`txt_for_MCMC.py` TODO
-    :output Neighbours.txt: see :script:`txt_for_MCMC.py` TODO
-    :output County.txt: see :script:`txt_for_MCMC.py` TODO
-    :output actual.csv: see :script:`txt_for_MCMC.py`, :script:`actual_H.cpp` TODO
-    :output Population.pdf: see :script:`txt_for_MCMC.py` TODO
-    :output Area.pdf: see :script:`txt_for_MCMC.py` TODO
-    :output Perimeter.pdf: see :script:`txt_for_MCMC.py` TODO
-    :output Neighbours.pdf: see :script:`txt_for_MCMC.py` TODO
-    :output <seat_makeup>_<coupling_constants>_<run_ID>.csv: see :script:`MCMC_SA.cpp` TODO (multiple)
+    :conf string area_type: see :script:`txt_for_MCMC.py`
+    :conf string area_list: see :script:`txt_for_MCMC.py`
+    :conf string area_name: see :script:`txt_for_MCMC.py`, :script:`actual_H.cpp`, :script:`MCMC_SA.cpp`
+    :conf array[string] seat_configs: constituency seat makeups, see :script:`MCMC_SA.cpp`
+    :conf float JC_proportion: contiguity objective weight as a proportion of sum of objective weights, see :script:`MCMC_SA.cpp`
+    :conf array[float] JDs: compactness objective weights, see :script:`MCMC_SA.cpp`
+    :conf array[float] JBs: county boundary objective weights, see :script:`MCMC_SA.cpp`
+    :conf integer N_meas: number of measurement sweeps per temperature, see :script:`MCMC_SA.cpp`
+    :conf integer N_dics: number of thermalisation sweeps per temperature, see :script:`MCMC_SA.cpp`
+    :conf integer threads: see :envvar:`OMP_NUM_THREADS`
+    :env SEED: see :script:`MCMC_SA.cpp`
+    :input F1060\*.csv: see :script:`combine_data.py`
+    :input \*100m\*.geojson: see :script:`combine_data.py`
+    :output GUID.txt: see :script:`txt_for_MCMC.py`
+    :output Population.txt: see :script:`txt_for_MCMC.py`
+    :output actual.csv: see :script:`actual_H.cpp`
+    :output <seat_makeup>_<coupling_constants>_<run_ID>.csv: all algorithm outputs for given seat makeups and coupling constants, see :script:`MCMC_SA.cpp`
 
 
 Environment variables
@@ -180,11 +171,11 @@ Environment variables
 
 .. envvar:: OMP_NUM_THREADS
 
-    number of OpenMP threads TODO
+    Number of OpenMP threads to use for parallelisation in :script:`MCMC_SA.cpp`. Note that the ``Map::GS_Sweep`` method avails of parallelism only when set greater than 32.
 
 .. envvar:: SEED
 
-    random number seed, default 1234 TODO
+    Seed for random number generation in :script:`MCMC_SA.cpp`. ``Map.cpp`` uses a default seed of 1234 if not set.
 
 
 Makefile targets
@@ -192,7 +183,7 @@ Makefile targets
 
 .. maketarget:: container
 
-    make the container TODO
+    Makes a Singularity container for running Python scripts.
 
     :usage:
 
@@ -200,7 +191,7 @@ Makefile targets
 
 .. maketarget:: cpp
 
-    make the executables TODO
+    Makes the C++ executables.
 
     :usage:
 
@@ -208,15 +199,15 @@ Makefile targets
 
 .. maketarget:: ED_data
 
-    makes :datafile:`ED_data.csv`, see :script:`combine_data.py` TODO
+    Makes :datafile:`ED_data.csv` according to :script:`combine_data.py`.
 
-    :dependency container: TODO
+    :dependency container: uses the Singularity container to run Python
 
 .. maketarget:: prepare
 
-    prepare the text files, see :script:`txt_for_MCMC.py` TODO
+    Prepare the text files according to :script:`txt_for_MCMC.py`.
 
-    :dependency ED_data: TODO
+    :dependency ED_data: uses the ED data to prepare files
 
 
 Input files
@@ -224,28 +215,28 @@ Input files
 
 .. datafile:: *100m*.geojson
 
-    ED geographical data TODO
+    ED geographies.
 
     :directory: ``data/``
-    :source: `webpage <https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m>`_ TODO
-    :usedby combine_data.py: TODO
-    :usedby plot_config.py: TODO
+    :source: `Tailte Éireann <https://data.gov.ie/dataset/cso-electoral-divisions-national-statistical-boundaries-2022-generalised-100m>`_ (`API <https://data-osi.opendata.arcgis.com/api/download/v1/items/a55332e0d15148688e06893086cb023b/geojson?layers=1>`_)
+    :usedby combine_data.py: used to obtain ED area, perimeter, and neighbours
+    :usedby plot_config.py: used to plot constituency configurations
 
 .. datafile:: Counties*.geojson
 
-    county geographical data TODO
+    County geographies.
 
     :directory: ``data/``
-    :source: `webpage <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_ TODO
-    :usedby plot_config.py: TODO
+    :source: `Taile Éireann <https://data.gov.ie/dataset/counties-national-statutory-boundaries-2019-generalised-20m>`_ (`API <https://data-osi.opendata.arcgis.com/api/download/v1/items/7ef9c5102d61424295e98505a00251ea/geojson?layers=0>`_)
+    :usedby plot_config.py: used to show county boundaries in constituency configuration plots
 
 .. datafile:: F1060*.csv
 
-    population data TODO
+    ED populations.
 
     :directory: ``data/``
-    :source: `webpage <https://data.cso.ie/table/F1060>`_ TODO
-    :usedby combine_data.py: TODO
+    :source: `Central Statistics Office <https://data.cso.ie/table/F1060>`_ (`API <https://ws.cso.ie/public/api.restful/PxStat.Data.Cube_API.PxAPIv1/en/76/C2022P1/F1060?query=%7B%22query%22:%5B%7B%22code%22:%22STATISTIC%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22F1060C01%22%5D%7D%7D,%7B%22code%22:%22C02199V02655%22,%22selection%22:%7B%22filter%22:%22item%22,%22values%22:%5B%22-%22%5D%7D%7D%5D,%22response%22:%7B%22format%22:%22csv%22,%22pivot%22:null,%22codes%22:true%7D%7D>`_)
+    :usedby combine_data.py: used for population column in :datafile:`ED_data.csv`
 
 
 Generated files
@@ -253,134 +244,134 @@ Generated files
 
 .. datafile:: Constituency_data.csv
 
-    2023 constituency seats TODO
+    Number of seats for the 2023 electoral constituencies.
 
     :directory: ``data/``
-    :source: :script:`combine_data.py` TODO
-    :usedby txt_for_MCMC.py: TODO
+    :source: :script:`combine_data.py`
+    :usedby txt_for_MCMC.py: used in creating :datafile:`actual.csv`
 
 .. datafile:: ED_data.csv
 
-    electoral division data required for cothrom framework TODO
+    Spreadsheet of ED data used in the optimisation procedure.
 
     :directory: ``data/``
-    :source: :script:`combine_data.py` TODO
-    :usedby txt_for_MCMC.py: TODO
+    :source: :script:`combine_data.py`
+    :usedby txt_for_MCMC.py: used to prepare files for :script:`actual_H.cpp` and :script:`MCMC_SA.cpp`
 
 .. datafile:: actual.csv
 
-    2023 constituency configuration TODO
+    ED allocations according to the 2023 electoral constituencies.
 
     :directory: ``data/<area_name>/``
-    :source: :script:`txt_for_MCMC.py` and :script:`actual_H.cpp` TODO
-    :usedby plot_config.py: TODO
-    :usedby plot_Pareto.py: TODO
+    :source: created by :script:`txt_for_MCMC.py`, modified by :script:`actual_H.cpp` TODO
+    :usedby plot_config.py: used to plot 2023 electoral constituencies
+    :usedby plot_Pareto.py: used to include 2023 electoral constituencies in Pareto fronts (optional)
 
 .. datafile:: Area.pdf
 
-    histograms of electoral division areas TODO
+    Histograms of ED areas.
 
     :directory: ``data/<area_name>/``
-    :source: :script:`txt_for_MCMC.py` TODO
+    :source: :script:`txt_for_MCMC.py`
 
 .. datafile:: County.txt
 
-    list of electoral division counties TODO
+    List of ED county indices.
 
     :directory: ``data/<area_name>/``
-    :source: :script:`txt_for_MCMC.py` TODO
-    :usedby actual_H.cpp: TODO
-    :usedby MCMC_SA.cpp: TODO
+    :source: :script:`txt_for_MCMC.py`
+    :usedby actual_H.cpp: used to calculate :math:`H_C`
+    :usedby MCMC_SA.cpp: used to calculate :math:`H_C` and :math:`\Delta H_C`
 
 .. datafile:: GUID.txt
 
-    list of electoral division GUIDs TODO
+    List of unique ED identifiers.
 
     :directory: ``data/<area_name>/``
-    :source: :script:`txt_for_MCMC.py` TODO
-    :usedby plot_config.py: TODO
+    :source: :script:`txt_for_MCMC.py`
+    :usedby plot_config.py: used to match constituency allocations to geographies
 
 .. datafile:: Neighbours.pdf
 
-    histograms of number of electoral division neighbours TODO
+    Histograms of numbers of ED neighbours.
 
     :directory: ``data/<area_name>/``
-    :source: :script:`txt_for_MCMC.py` TODO
+    :source: :script:`txt_for_MCMC.py`
 
 .. datafile:: Neighbours.txt
 
-    list of number of electoral division neighbours TODO
+    List of numbers of ED neighbours.
 
     :directory: ``data/<area_name>/``
-    :source: :script:`txt_for_MCMC.py` TODO
-    :usedby actual_H.cpp: TODO
-    :usedby MCMC_SA.cpp: TODO
+    :source: :script:`txt_for_MCMC.py`
+    :usedby actual_H.cpp: used to calculate :math:`H_D`
+    :usedby MCMC_SA.cpp: used to calculate :math:`H_D` and :math:`\Delta H_D`
 
 .. datafile:: Perimeter.pdf
 
-    histograms of electoral division perimeters TODO
+    Histograms of ED perimeters.
 
     :directory: ``data/<area_name>/``
-    :source: :script:`txt_for_MCMC.py` TODO
+    :source: :script:`txt_for_MCMC.py`
 
 .. datafile:: Population.pdf
 
-    histograms of electoral division populations TODO
+    Histograms of ED populations.
 
     :directory: ``data/<area_name>/``
-    :source: :script:`txt_for_MCMC.py` TODO
+    :source: :script:`txt_for_MCMC.py`
 
 .. datafile:: Population.txt
 
-    list of electoral division populations TODO
+    List of ED populations.
 
     :directory: ``data/<area_name>/``
-    :source: :script:`txt_for_MCMC.py` TODO
-    :usedby actual_H.cpp: TODO
-    :usedby MCMC_SA.cpp: TODO
-    :usedby plot_config.py: TODO
+    :source: :script:`txt_for_MCMC.py`
+    :usedby actual_H.cpp: used to calculate :math:`H_P`
+    :usedby MCMC_SA.cpp: used to calculate :math:`H_P` and :math:`\Delta H_P`
+    :usedby plot_config.py: used to show population variances in figure legend
 
 .. datafile:: <seat_makeup>_<coupling_constants>_<run_ID>.csv
 
-    algorithm output TODO
+    Algorithm parameters, initial and optimised configurations, and observable evolutions.
 
     :directory: ``data/<area_name>/<seats>_<constituencies>/``
-    :source: :script:`MCMC_SA.cpp` TODO
-    :usedby plot_config.py: TODO
-    :usedby plot_Pareto.py: TODO
-    :usedby plot_stats.py: TODO
+    :source: :script:`MCMC_SA.cpp`
+    :usedby plot_config.py: used to plot initial and optimised configurations
+    :usedby plot_Pareto.py: used to plot Pareto scatterplot
+    :usedby plot_stats.py: used to plot observable evolutions
 
 .. datafile:: Configurations_<run_ID>.pdf
 
-    plots of initial and optimal (or actual) configurations TODO
+    Plots of initial and optimised (or actual) constituency configurations.
 
     :directory: ``data/<area_name>/<seats>_<constituencies>/``
-    :source: :script:`plot_config.py` TODO
+    :source: :script:`plot_config.py`
 
 .. datafile:: Objectives_per_observable_<run_ID>.pdf
 
-    plots of each objective per observable TODO
+    Plots of energies, heat capacities, and autocorrelation times, grouped by observable.
 
     :directory: ``data/<area_name>/<seats>_<constituencies>/``
-    :source: :script:`plot_stats.py` TODO
+    :source: :script:`plot_stats.py`
 
 .. datafile:: Observables_per_objective_<run_ID>.pdf
 
-    plots of each observable per objective TODO
+    Plots of energies, heat capacities, and autocorrelation times, grouped by objective.
 
     :directory: ``data/<area_name>/<seats>_<constituencies>/``
-    :source: :script:`plot_stats.py` TODO
+    :source: :script:`plot_stats.py`
 
 .. datafile:: Pareto.pdf
 
-    plots of Pareto fronts TODO
+    Plots of estimated Pareto fronts.
 
     :directory: ``data/<area_name>/<seats>_<constituencies>/``
-    :source: :script:`plot_Pareto.py` TODO
+    :source: :script:`plot_Pareto.py`
 
 .. datafile:: Runtime_Acceptance_<run_ID>.pdf
 
-    plots of runtimes and acceptance rates TODO
+    Plots of algorithm runtimes and MCMC acceptance rates.
 
     :directory: ``data/<area_name>/<seats>_<constituencies>/``
-    :source: :script:`plot_stats.py` TODO
+    :source: :script:`plot_stats.py`

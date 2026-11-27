@@ -40,6 +40,7 @@ def setup(app):
         ]
     )
 
+    # TODO add types to arguments?
     app.add_object_type(
         directivename="script",
         rolename="script",
