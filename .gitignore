@@ -1,20 +1,13 @@
 # data files
-*.pdf
-*.txt
-!requirements.txt
-*.geojson
-*.csv
-*.html
-
-# old directories
-*stuff/
+data/*
+!data/Constituency_data.csv
 
 # executables, object files
 MCMC_SA
 actual_H
 *.o
 build/
-*sif
+*.sif
 
 # virtual environment
 .venv/
@@ -24,3 +17,4 @@ slurm-*.out
 
 # cached directories
 **/__pycache__/
+.vscode/
